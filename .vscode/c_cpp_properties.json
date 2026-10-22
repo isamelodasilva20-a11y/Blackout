@@ -1,32 +1,27 @@
 {
     "configurations": [
-        {
-            "name": "macos-gcc-x64",
+                {
+            "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/**",
                 "${workspaceFolder}/include",
-                "C:/raylib/include",
-                "/opt/homebrew/include"
+                "C:/raylib/include"
             ],
-            "cStandard": "${default}",
-            "cppStandard": "${default}",
-            "intelliSenseMode": "macos-gcc-x64",
-            "compilerPath": "C:/w64devkit/bin/gcc.exe"
+            "defines": [],
+            "compilerPath": "C:/w64devkit/bin/gcc.exe",
+            "cStandard": "c99",
+            "intelliSenseMode": "windows-gcc-x64"
         },
         {
             "name": "Mac",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/include",
+                "/opt/homebrew/include",
+                "/usr/local/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
-            "cStandard": "gnu17",
-            "cppStandard": "gnu++14",
-            "intelliSenseMode": "macos-clang-arm64",
-            "compilerArgs": [
-                "${workspaceFolder}/include",
-                "/opt/homebrew/include"
-            ]
+            "cStandard": "c99",
+            "intelliSenseMode": "macos-clang-arm64"
         }
     ],
     "version": 4
