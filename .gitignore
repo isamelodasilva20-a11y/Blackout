@@ -5,3 +5,9 @@ build/
 src/output/
 .vscode/launch.json
 .vscode/settings.json
+
+# Executáveis sem extensão (macOS/Linux)
+blackout
+
+# Arquivos do sistema (macOS)
+.DS_Store
