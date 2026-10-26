@@ -1,9 +1,12 @@
 #include "raylib.h"
 #include "jogo.h"
+#include "memoria.h"
 
 int main(void) {
     const int screenWidth = 800;
     const int screenHeight = 450;
+    int *teste = memAlocar(sizeof(int));
+    memLiberar(teste);
 
     InitWindow(screenWidth, screenHeight, "Blackout - CESAR School");
     SetTargetFPS(60);
@@ -12,11 +15,6 @@ int main(void) {
     jogo.tela_atual = JOGANDO;
 
     while (!WindowShouldClose()) {
-        
-        // --- Atualizações de Lógica (Update) ---
-        // (Será preenchido nos próximos itens do backlog)
-
-        // --- Desenho na Tela (Draw) ---
         BeginDrawing();
             ClearBackground(BLACK);
 
@@ -27,5 +25,7 @@ int main(void) {
     }
 
     CloseWindow();
+    memRelatorio();
+
     return 0;
 }
