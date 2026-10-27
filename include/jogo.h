@@ -1,9 +1,12 @@
 #ifndef JOGO_H
 #define JOGO_H
 
-typedef enum { MENU, JOGANDO, PAUSA, VITORIA, GAME_OVER, RANKING } EstadoJogo;
-typedef enum { ROBO_ALEATORIO, ROBO_PERSEGUIDOR, ROBO_INTERCEPTADOR } TipoRobo;
-typedef enum { ESTADO_NORMAL, ESTADO_FUGINDO, ESTADO_DESLIGADO } EstadoRobo;
+typedef enum {
+    DIR_CIMA,
+    DIR_BAIXO,
+    DIR_ESQUERDA,
+    DIR_DIREITA
+} Direcao;
 
 typedef struct {
     int linha;
@@ -17,41 +20,56 @@ typedef struct {
 } Mapa;
 
 typedef struct {
-    Posicao pos;
-    Posicao pos_inicial;
-    int vidas;
-    int pontos;
-    int bateria;
-    int ultima_direcao;
+    Posicao posicao;          
+    Posicao posicaoInicial;   
+    Direcao direcao;           
+    int vidas;            
+    int pontos;           
+    int bateria;          
 } Jogador;
 
-typedef struct {
-    Posicao pos;
-    int entregou;
-} Professor;
+
+typedef enum {
+    ITEM_PENDRIVE,
+    ITEM_LANTERNA
+} TipoItem;
 
 typedef struct Item {
-    Posicao pos;
-    int tipo;
+    Posicao posicao;
+    TipoItem tipo;
     struct Item *proximo;
 } Item;
 
+
+typedef enum {
+    ROBO_ALEATORIO,     
+    ROBO_PERSEGUIDOR,   
+    ROBO_INTERCEPTADOR  
+} TipoRobo;
+
+typedef enum {
+    ESTADO_NORMAL,
+    ESTADO_FUGINDO,
+    ESTADO_DESLIGADO
+} EstadoRobo;
+
 typedef struct Robo {
-    Posicao pos;
-    Posicao pos_inicial;
+    Posicao posicao;
+    Posicao posicaoInicial;
     TipoRobo tipo;
     EstadoRobo estado;
     struct Robo *proximo;
 } Robo;
 
+// --- 7. ESTADO GERAL DO JOGO ---
 typedef struct {
     Mapa mapa;
     Jogador jogador;
-    Professor professor;
-    Item *itens;
-    Robo *robos;         
-    int andar_atual;
-    EstadoJogo tela_atual;
+    Item *itens;          
+    Robo *robos;          
+    int andarAtual;
+    int telaAtual;        
+    int modoVisao;        
 } Jogo;
 
-#endif 
+#endif
