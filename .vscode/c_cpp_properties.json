@@ -1,16 +1,14 @@
 {
   "configurations": [
     {
-      "name": "macos-gcc-x64",
+      "name": "windows-gcc-x64",
       "includePath": [
-        "${workspaceFolder}/**",
-        "${workspaceFolder}/include",
-        "C:/raylib/include"
+        "${workspaceFolder}/**"
       ],
       "defines": [],
       "compilerPath": "C:/w64devkit/bin/gcc.exe",
       "cStandard": "${default}",
-      "intelliSenseMode": "macos-gcc-x64",
+      "intelliSenseMode": "windows-gcc-x64",
       "cppStandard": "${default}"
     },
     {

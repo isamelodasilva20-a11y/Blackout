@@ -3,6 +3,7 @@
 
 #include "jogo.h"
 
+void desenharMapa2D(Mapa *mapa, int tamanhoCasa);
 void desenharJogador2D(Jogador *jogador, int tamanhoCasa);
 
 #endif

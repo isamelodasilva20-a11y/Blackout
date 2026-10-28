@@ -2,6 +2,8 @@
 #include "jogo.h"
 #include "jogador.h"
 #include "render_2d.h"
+#include "mapa.h"
+#include "memoria.h"
 
 
 
@@ -10,6 +12,11 @@ int main(void) {
     SetTargetFPS(60);
 
     Jogo jogo = {0}; //estado do jogo
+
+    if (!mapaCarregar(&jogo, "andares/andar1.txt")) {
+        CloseWindow();
+        return 1;
+    }
 
     float acumuladorTempo = 0.0f;
 
@@ -27,12 +34,15 @@ int main(void) {
 
         BeginDrawing();
             ClearBackground(BLACK);
-            
+
+            desenharMapa2D(&jogo.mapa, 24);
             desenharJogador2D(&jogo.jogador, 24);
 
         EndDrawing();
     }
 
+    mapaLiberar(&jogo.mapa);
+    memRelatorio();
     CloseWindow();
     return 0;
 }

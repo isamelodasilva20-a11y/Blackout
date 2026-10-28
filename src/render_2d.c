@@ -2,6 +2,18 @@
 #include "raylib.h"
 #include "jogo.h"
 
+void desenharMapa2D(Mapa *mapa, int tamanhoCasa) {
+    if(mapa == NULL || mapa->matriz == NULL) return;
+
+    for(int i = 0; i < mapa->linhas; i++){
+        for(int j = 0; j < mapa->colunas; j++){
+            if(mapa->matriz[i][j] == '#'){
+                DrawRectangle(j * tamanhoCasa, i * tamanhoCasa, tamanhoCasa, tamanhoCasa, DARKBLUE);
+            }
+        }
+    }
+}
+
 void desenharJogador2D(Jogador *jogador, int tamanhoCasa) {
     if(jogador == NULL) return;
 
