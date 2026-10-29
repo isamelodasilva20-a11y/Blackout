@@ -24,5 +24,4 @@ void movimentar_jogador(Jogador *jogador, Mapa *mapa, Direcao direcao){
         }
     }
     
-
 }   

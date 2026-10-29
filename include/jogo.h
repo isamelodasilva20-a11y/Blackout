@@ -37,7 +37,7 @@ typedef enum {
 typedef struct Item {
     Posicao posicao;
     TipoItem tipo;
-    struct Item *proximo;
+    struct Item *next;
 } Item;
 
 
@@ -58,7 +58,7 @@ typedef struct Robo {
     Posicao posicaoInicial;
     TipoRobo tipo;
     EstadoRobo estado;
-    struct Robo *proximo;
+    struct Robo *next;
 } Robo;
 
 // --- 7. ESTADO GERAL DO JOGO ---
