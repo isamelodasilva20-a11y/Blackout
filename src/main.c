@@ -20,8 +20,8 @@ int main(void) {
     }
 
     Item *lista_itens = NULL;
-    adicionar_item(&lista_itens, (Posicao){ .linha = 3, .coluna = 3}, ITEM_LANTERNA);
-    adicionar_item(&lista_itens, (Posicao){ .linha = 8, .coluna = 7}, ITEM_PENDRIVE);
+    adicionar_item(&lista_itens, (Posicao){ .linha = 3, .coluna = 3}, ITEM_BATERIA);
+    adicionar_item(&lista_itens, (Posicao){ .linha = 8, .coluna = 7}, ITEM_BATERIA);
 
     float acumuladorTempo = 0.0f;
     int venceu = 0;

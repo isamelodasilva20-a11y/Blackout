@@ -1,5 +1,6 @@
 #ifndef JOGO_H
 #define JOGO_H
+#include <stdbool.h>
 
 typedef enum {
     DIR_CIMA,
@@ -25,13 +26,13 @@ typedef struct {
     Direcao direcao;           
     int vidas;            
     int pontos;           
-    int bateria;          
+    int bateria;
+    bool temPendrive;         
 } Jogador;
 
 
 typedef enum {
-    ITEM_PENDRIVE,
-    ITEM_LANTERNA
+    ITEM_BATERIA
 } TipoItem;
 
 typedef struct Item {
@@ -39,6 +40,15 @@ typedef struct Item {
     TipoItem tipo;
     struct Item *next;
 } Item;
+
+typedef struct {
+    Posicao posicao;
+    const char *nome;
+    const char *pegunta;
+    const char *resposta;
+    bool ajudado;
+}Professor;
+
 
 
 typedef enum {
@@ -66,7 +76,8 @@ typedef struct {
     Mapa mapa;
     Jogador jogador;
     Item *itens;          
-    Robo *robos;          
+    Robo *robos;     
+    Professor professor;  
     int andarAtual;
     int telaAtual;        
     int modoVisao;        

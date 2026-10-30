@@ -19,11 +19,7 @@ void desenhar_item(Item *itens, int tamanhoCasa){
         int eixo_x = (atual->posicao.coluna * tamanhoCasa) + (tamanhoCasa / 2.0f);
         int eixo_y = (atual->posicao.linha * tamanhoCasa) + (tamanhoCasa / 2.0f);
 
-        if(atual->tipo == ITEM_PENDRIVE){
-            DrawCircle((int)eixo_x, (int)eixo_y, tamanhoCasa / 4.0f, BLUE);
-        }else if(atual->tipo == ITEM_LANTERNA){
-            DrawCircle((int)eixo_x, (int)eixo_y, tamanhoCasa / 4.0f, GREEN);
-        }
+        DrawCircle((int)eixo_x, (int)eixo_y, tamanhoCasa / 4.0f, BLUE);
         atual = atual->next;
     }
 }
@@ -34,9 +30,7 @@ void coletar_item(Item **itens, Jogador *jogador){
     Item *anterior = NULL;
     while(atual != NULL){
         if(jogador->posicao.linha == atual->posicao.linha && jogador->posicao.coluna == atual->posicao.coluna){
-            if(atual->tipo == ITEM_PENDRIVE){
-                jogador->pontos += 10;
-            }else if(atual->tipo == ITEM_LANTERNA){
+            if(atual->tipo == ITEM_BATERIA){
                 jogador->bateria = 100;
             }
             Item *apagado = atual;
