@@ -1,7 +1,6 @@
 #include "raylib.h"
 #include "jogo.h"
 #include "jogador.h"
-#include "render_2d.h"
 #include "mapa.h"
 #include "memoria.h"
 #include "itens.h"

@@ -5,6 +5,36 @@
 
 #define TAM_BUFFER 256 // tamanho maximo de uma linha lida do arquivo
 
+#include <stddef.h>
+#include "raylib.h"
+#include "jogo.h"
+
+void desenharMapa2D(Mapa *mapa, int tamanhoCasa) {
+    if(mapa == NULL || mapa->matriz == NULL) return;
+
+    for(int i = 0; i < mapa->linhas; i++){
+        for(int j = 0; j < mapa->colunas; j++){
+            if(mapa->matriz[i][j] == '#'){
+                DrawRectangle(j * tamanhoCasa, i * tamanhoCasa, tamanhoCasa, tamanhoCasa, DARKBLUE);
+            }
+        }
+    }
+}
+
+// Desenha a escada (saida do andar) como um quadrado na casa do 'S'
+void desenharSaida2D(Mapa *mapa, int tamanhoCasa, bool liberada) {
+    if(mapa == NULL || mapa->saida.linha < 0) return; // andar sem escada
+
+    // Escada fica cinza enquanto ainda faltam baterias e verde quando o jogador pode subir
+    Color cor = liberada ? GREEN : DARKGRAY;
+
+    // Converte linha/coluna em pixels; o +2 / -4 deixa uma borda de 2px para o
+    // quadrado nao encostar nas paredes vizinhas
+    DrawRectangle(mapa->saida.coluna * tamanhoCasa + 2, mapa->saida.linha * tamanhoCasa + 2,
+                  tamanhoCasa - 4, tamanhoCasa - 4, cor);
+}
+
+
 // A legenda dos caracteres do mapa esta em mapa.h
 int mapaCarregar(Jogo *jogo, const char *arquivo) {
     if (jogo == NULL || arquivo == NULL) return 0;

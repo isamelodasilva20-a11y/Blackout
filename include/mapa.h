@@ -28,6 +28,11 @@
 
 #define TOTAL_ANDARES 3 // quantos arquivos andarN.txt o jogo percorre ate a vitoria
 
+void desenharMapa2D(Mapa *mapa, int tamanhoCasa);
+
+// liberada = true quando todas as baterias ja foram coletadas (escada verde)
+void desenharSaida2D(Mapa *mapa, int tamanhoCasa, bool liberada);
+
 // Le um arquivo de mapa para dentro de jogo->mapa. Tambem posiciona o jogador
 // (P), guarda a escada (S) e cria as baterias (I) na lista jogo->itens.
 // Retorna 1 se deu certo e 0 se deu erro.

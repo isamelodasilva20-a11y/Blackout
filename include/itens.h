@@ -1,6 +1,5 @@
 #ifndef ITENS_H
 #define ITENS_H
-
 #include "jogo.h"
 
 void adicionar_item(Item **item, Posicao posicao, TipoItem tipo);
