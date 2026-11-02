@@ -21,7 +21,13 @@ void movimentar_jogador(Jogador *jogador, Mapa *mapa, Direcao direcao){
         if(mapa->matriz[nova_linha][nova_coluna] != '#'){
             jogador->posicao.linha = nova_linha;
             jogador->posicao.coluna = nova_coluna;
+
+            // ALTERA O PASSO: se estava no frame 1 vai pro 2, se estava no 2 (ou 0) vai pro 1
+            if (jogador->frame == 1) {
+                jogador->frame = 2;
+            } else {
+                jogador->frame = 1;
+            }
         }
     }
-    
 }   

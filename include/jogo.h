@@ -1,5 +1,6 @@
 #ifndef JOGO_H
 #define JOGO_H
+#include <raylib.h>
 #include <stdbool.h>
 
 typedef enum {
@@ -28,6 +29,7 @@ typedef struct {
     int vidas;            
     int pontos;           
     int bateria;
+    int frame;
     bool temPendrive;         
 } Jogador;
 
@@ -87,6 +89,7 @@ typedef enum {
 typedef struct {
     Mapa mapa;
     Jogador jogador;
+    Texture2D texturaJogador; 
     Item *itens;          
     Robo *robos;     
     Professor professor;  

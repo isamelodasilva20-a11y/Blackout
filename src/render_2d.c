@@ -14,16 +14,49 @@ void desenharMapa2D(Mapa *mapa, int tamanhoCasa) {
     }
 }
 
-void desenharJogador2D(Jogador *jogador, int tamanhoCasa) {
-    if(jogador == NULL) return;
+#include "render_2d.h"
 
-    // Calcula as coordenadas em pixels no centro da casa
-    float centroX = (jogador->posicao.coluna * tamanhoCasa) + (tamanhoCasa / 2.0f);
-    float centroY = (jogador->posicao.linha * tamanhoCasa) + (tamanhoCasa / 2.0f);
-    float raio = (tamanhoCasa / 2.0f) - 3.0f;
+void desenharJogador2D(Jogo *jogo, int tamanhoCasa) {
+    if (jogo == NULL || jogo->texturaJogador.id == 0) return;
 
-    DrawCircle((int)centroX, (int)centroY, raio, YELLOW);
+    float posX = jogo->jogador.posicao.coluna * tamanhoCasa;
+    float posY = jogo->jogador.posicao.linha * tamanhoCasa;
+
+    float larguraFrame = (float)jogo->texturaJogador.width / 4.0f;
+    float alturaFrame  = (float)jogo->texturaJogador.height / 3.0f;
+
+    int linhaDirecao = 0;
+
+    if (jogo->jogador.direcao == DIR_CIMA) {
+        linhaDirecao = 0;
+    } else if (jogo->jogador.direcao == DIR_BAIXO) {
+        linhaDirecao = 1;
+    } else if (jogo->jogador.direcao == DIR_ESQUERDA || jogo->jogador.direcao == DIR_DIREITA) {
+        linhaDirecao = 2; // Linha do perfil
+    }
+
+    // Se a imagem original aponta para a ESQUERDA:
+    // Mantém largura positiva para a ESQUERDA e NEGATIVA para a DIREITA (espelhar)
+    float larguraSrc = larguraFrame;
+    if (jogo->jogador.direcao == DIR_DIREITA) {
+        larguraSrc = -larguraFrame;
+    }
+
+    Rectangle srcRec = {
+        .x = (jogo->jogador.frame % 4) * larguraFrame,
+        .y = linhaDirecao * alturaFrame,
+        .width = larguraSrc,
+        .height = alturaFrame
+    };
+
+    Rectangle destRec = { posX, posY, (float)tamanhoCasa, (float)tamanhoCasa };
+    Vector2 origin = { 0.0f, 0.0f };
+
+    DrawTexturePro(jogo->texturaJogador, srcRec, destRec, origin, 0.0f, WHITE);
 }
+
+
+
 
 // Desenha a escada (saida do andar) como um quadrado na casa do 'S'
 void desenharSaida2D(Mapa *mapa, int tamanhoCasa, bool liberada) {
