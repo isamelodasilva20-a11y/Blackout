@@ -23,6 +23,17 @@
       "compilerPath": "/usr/bin/clang",
       "cStandard": "c99",
       "intelliSenseMode": "macos-clang-arm64"
+    },
+    {
+      "name": "Windows",
+      "includePath": [
+        "${workspaceFolder}/include",
+        "C:/raylib/include"
+      ],
+      "defines": [],
+      "compilerPath": "C:/w64devkit/bin/gcc.exe",
+      "cStandard": "c99",
+      "intelliSenseMode": "windows-gcc-x64"
     }
   ],
   "version": 4

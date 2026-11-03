@@ -1,6 +1,5 @@
 #ifndef ITENS_H
 #define ITENS_H
-
 #include "jogo.h"
 
 void adicionar_item(Item **item, Posicao posicao, TipoItem tipo);
@@ -11,7 +10,8 @@ void liberar_item(Item *item);
 
 void liberar_todos_itens(Item **itens);
 
-void desenhar_item(Item *item, int tamanhoCasa);
+// origem = canto superior esquerdo do mapa na tela (permite desenhar no minimapa)
+void desenhar_item(Item *item, Vector2 origem, int tamanhoCasa);
 
 int verificar_vitoria(Item *itens);
 
