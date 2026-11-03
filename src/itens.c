@@ -13,15 +13,16 @@ void adicionar_item(Item **itens, Posicao posicao, TipoItem tipo){
 }
 
 //desenha a representação visual dos itens
-void desenhar_item(Item *itens, int tamanhoCasa){
+//origem = canto superior esquerdo do mapa na tela (no minimapa ela muda)
+void desenhar_item(Item *itens, Vector2 origem, int tamanhoCasa){
     Item *atual = itens;
     while(atual!=NULL){
         //pega a loc atribuida ao item para desenhar no local certo
-        int eixo_x = (atual->posicao.coluna * tamanhoCasa) + (tamanhoCasa / 2.0f);
-        int eixo_y = (atual->posicao.linha * tamanhoCasa) + (tamanhoCasa / 2.0f);
+        int eixo_x = (int)origem.x + (atual->posicao.coluna * tamanhoCasa) + (tamanhoCasa / 2);
+        int eixo_y = (int)origem.y + (atual->posicao.linha * tamanhoCasa) + (tamanhoCasa / 2);
 
         //usa a funcao do raylib pra desenhar, inicialmente um cículo azul
-        DrawCircle((int)eixo_x, (int)eixo_y, tamanhoCasa / 4.0f, BLUE);
+        DrawCircle(eixo_x, eixo_y, (float)tamanhoCasa / 4.0f, BLUE);
         //vai pro proximo item até chegar em NULL
         atual = atual->next;
     }
