@@ -138,3 +138,32 @@ void robosLiberar(Robo **cabeca) {
     }
     *cabeca = NULL;
 }
+void desenharRobos(Jogo *jogo, Vector2 origem, int tamanhoTile) {
+    if (jogo == NULL) return;
+
+    Robo *atual = jogo->robos;
+    while (atual != NULL) {
+        if (atual->estado != ESTADO_DESLIGADO) {
+            float posX = origem.x + (atual->posicao.coluna * tamanhoTile);
+            float posY = origem.y + (atual->posicao.linha * tamanhoTile);
+
+            Texture2D texturaAtual;
+            Color corFiltro = (atual->estado == ESTADO_FUGINDO) ? BLUE : WHITE;
+
+            if (atual->tipo == ROBO_INTERCEPTADOR) {
+                texturaAtual = jogo->texRoboInterceptador;
+            } else if (atual->tipo == ROBO_ALEATORIO) {
+                texturaAtual = jogo->texRoboAleatorio;
+            } else {
+                texturaAtual = jogo->texRoboPerseguidor;
+            }
+
+            Rectangle origemTextura = { 0, 0, (float)texturaAtual.width, (float)texturaAtual.height };
+            Rectangle destino = { posX, posY, (float)tamanhoTile, (float)tamanhoTile };
+            Vector2 origemRotacao = { 0, 0 };
+
+            DrawTexturePro(texturaAtual, origemTextura, destino, origemRotacao, 0.0f, corFiltro);
+        }
+        atual = atual->next;
+    }
+}

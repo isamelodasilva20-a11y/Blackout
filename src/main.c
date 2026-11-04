@@ -51,12 +51,18 @@ int main(void) {
     jogo.texturasProfessores[PROFESSOR_3][0] = LoadTexture("imagens/professor_3_normal.png");
     jogo.texturasProfessores[PROFESSOR_3][1] = LoadTexture("imagens/professor_3_joinha.png");
 
+
     // Aplica o filtro Point em todas as texturas para manter o visual Pixel Art nítido (24x24)
     for (int p = 0; p < 3; p++) {
         for (int pose = 0; pose < 2; pose++) {
             SetTextureFilter(jogo.texturasProfessores[p][pose], TEXTURE_FILTER_POINT);
         }
     }
+
+    // --- CARREGAMENTO DOS ROBÔS ---
+    jogo.texRoboInterceptador = LoadTexture("imagens/robo_laranja.png");
+    jogo.texRoboAleatorio = LoadTexture("imagens/robo_roxo.png");
+    jogo.texRoboPerseguidor = LoadTexture("imagens/robo_vermelho.png");
 
 
     jogo.jogador.vidas = VIDAS_INICIAIS; // as vidas valem para a partida toda, nao por andar
@@ -71,6 +77,10 @@ int main(void) {
     float tempoPasso = 0.0f; // Temporizador para controlar a velocidade do movimento contínuo
     const float INTERVALO_PASSO = 0.15f; // Intervalo de 0.15s entre cada passo ao segurar a tecla
     int venceu = 0;
+
+    // Temporizador dos robôs
+    float tempoRobos = 0.0f;
+    const float INTERVALO_ROBOS = 0.4f; // A cada 0.4s eles dão um passo
 
     while (carregou && !WindowShouldClose()) {
         // --- F11 alterna tela cheia (sem borda, na resolucao do monitor) ---
@@ -101,6 +111,12 @@ int main(void) {
 
                 if (!venceu && jogo.telaAtual == TELA_NORMAL) {
             tempoPasso += GetFrameTime();
+
+            tempoRobos += GetFrameTime();
+            if (tempoRobos >= INTERVALO_ROBOS) {
+                tempoRobos = 0.0f;
+                robosAtualizar(&jogo);
+            }
 
             if (jogo.modoVisao == 0) {
                 // --- Controles 2D Contínuos (na main.c) ---
