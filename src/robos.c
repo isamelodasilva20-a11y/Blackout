@@ -1,6 +1,7 @@
 #include "robos.h"
 #include "memoria.h"
 #include <stdlib.h>
+#include "raymath.h"
 
 void robosAdicionar(Robo **cabeca, Posicao posicao, TipoRobo tipo) {
     Robo *novo = (Robo *)memAlocar(sizeof(Robo));
@@ -10,6 +11,9 @@ void robosAdicionar(Robo **cabeca, Posicao posicao, TipoRobo tipo) {
     novo->posicaoInicial = posicao;
     novo->tipo = tipo;
     novo->estado = ESTADO_NORMAL;
+    novo->posicaoReal = (Vector2){ (float)posicao.coluna, (float)posicao.linha };
+    novo->direcao = (Vector2){ 0.0f, 0.0f };
+    novo->velocidade = 2.5f;
     novo->next = *cabeca;
     *cabeca = novo;
 }
@@ -146,6 +150,76 @@ void desenharRobos(Jogo *jogo, Vector2 origem, int tamanhoTile) {
         if (atual->estado != ESTADO_DESLIGADO) {
             float posX = origem.x + (atual->posicao.coluna * tamanhoTile);
             float posY = origem.y + (atual->posicao.linha * tamanhoTile);
+
+            Texture2D texturaAtual;
+            Color corFiltro = (atual->estado == ESTADO_FUGINDO) ? BLUE : WHITE;
+
+            if (atual->tipo == ROBO_INTERCEPTADOR) {
+                texturaAtual = jogo->texRoboInterceptador;
+            } else if (atual->tipo == ROBO_ALEATORIO) {
+                texturaAtual = jogo->texRoboAleatorio;
+            } else {
+                texturaAtual = jogo->texRoboPerseguidor;
+            }
+
+            Rectangle origemTextura = { 0, 0, (float)texturaAtual.width, (float)texturaAtual.height };
+            Rectangle destino = { posX, posY, (float)tamanhoTile, (float)tamanhoTile };
+            Vector2 origemRotacao = { 0, 0 };
+
+            DrawTexturePro(texturaAtual, origemTextura, destino, origemRotacao, 0.0f, corFiltro);
+        }
+        atual = atual->next;
+    }
+}
+void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
+    if (jogo == NULL) return;
+
+    Robo *atual = jogo->robos;
+    while (atual != NULL) {
+        if (atual->estado != ESTADO_DESLIGADO) {
+            float passo = atual->velocidade * deltaTime;
+            Posicao alvo = jogo->jogador.posicao;
+
+            if (atual->tipo == ROBO_INTERCEPTADOR) {
+                // Interceptador: tenta cortar 2 casas à frente do jogador
+                switch (jogo->jogador.direcao) {
+                    case DIR_CIMA:     alvo.linha -= 2; break;
+                    case DIR_BAIXO:    alvo.linha += 2; break;
+                    case DIR_ESQUERDA: alvo.coluna -= 2; break;
+                    case DIR_DIREITA:  alvo.coluna += 2; break;
+                }
+            } else if (atual->tipo == ROBO_PERSEGUIDOR) {
+                // Perseguidor: vai direto à posição do jogador
+                alvo = jogo->jogador.posicao;
+            }
+
+            float dx = (float)alvo.coluna - atual->posicaoReal.x;
+            float dy = (float)alvo.linha - atual->posicaoReal.y;
+            float dist = sqrtf(dx * dx + dy * dy);
+
+            if (dist > 0.05f) {
+                atual->posicaoReal.x += (dx / dist) * passo;
+                atual->posicaoReal.y += (dy / dist) * passo;
+            } else {
+                atual->posicaoReal.x = (float)alvo.coluna;
+                atual->posicaoReal.y = (float)alvo.linha;
+            }
+
+            atual->posicao.coluna = (int)(atual->posicaoReal.x + 0.5f);
+            atual->posicao.linha = (int)(atual->posicaoReal.y + 0.5f);
+        }
+        atual = atual->next;
+    }
+}
+
+void desenharRobos(Jogo *jogo, Vector2 origem, int tamanhoTile) {
+    if (jogo == NULL) return;
+
+    Robo *atual = jogo->robos;
+    while (atual != NULL) {
+        if (atual->estado != ESTADO_DESLIGADO) {
+            float posX = origem.x + (atual->posicaoReal.x * tamanhoTile);
+            float posY = origem.y + (atual->posicaoReal.y * tamanhoTile);
 
             Texture2D texturaAtual;
             Color corFiltro = (atual->estado == ESTADO_FUGINDO) ? BLUE : WHITE;

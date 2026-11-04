@@ -79,6 +79,9 @@ typedef struct Robo {
     Posicao posicaoInicial;
     TipoRobo tipo;
     EstadoRobo estado;
+    Vector2 posicaoReal;    // Posição fluida na tela (float)
+    Vector2 direcao;        // Direção do movimento ex: {1, 0}
+    float velocidade;       //velocidade do robo
     struct Robo *next;
 } Robo;
 

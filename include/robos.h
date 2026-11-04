@@ -8,4 +8,5 @@ void robosAtualizar(Jogo *jogo);
 void checarColisoes(Jogo *jogo);
 void robosLiberar(Robo **cabeca);
 void desenharRobos(Jogo *jogo, Vector2 origem, int tamanhoTile);
+void robosAtualizarContinuo(Jogo *jogo, float deltaTime);
 #endif
