@@ -104,4 +104,12 @@ typedef struct {
     int totalItensAndar;  // quantas baterias o andar atual tinha ao carregar (para o HUD)
 } Jogo;
 
+typedef struct {
+    // ... os teus outros campos (mapa, jogador, robos, etc) ...
+    
+    Texture2D texRoboInterceptador;
+    Texture2D texRoboAleatorio;
+    Texture2D texRoboPerseguidor;
+} Jogo;
+
 #endif
