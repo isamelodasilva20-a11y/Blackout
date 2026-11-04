@@ -99,6 +99,9 @@ typedef struct {
     Jogador jogador;
     Texture2D texturaJogador; 
     Texture2D texturasProfessores[3][2];
+    Texture2D texRoboInterceptador;
+    Texture2D texRoboAleatorio;
+    Texture2D texRoboPerseguidor;
     Item *itens;          
     Robo *robos;     
     Professor professor;  
@@ -112,12 +115,5 @@ typedef struct {
     int totalItensAndar;  // quantas baterias o andar atual tinha ao carregar (para o HUD)
 } Jogo;
 
-typedef struct {
-    // ... os teus outros campos (mapa, jogador, robos, etc) ...
-    
-    Texture2D texRoboInterceptador;
-    Texture2D texRoboAleatorio;
-    Texture2D texRoboPerseguidor;
-} Jogo;
 
 #endif
