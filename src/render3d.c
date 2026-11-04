@@ -36,33 +36,48 @@
 #define COR_TELA_3D      (Color){  80, 170, 235, 255 }
 #define COR_BATERIA_3D   (Color){  40, 120, 255, 255 }
 
-/*
- * Estado da camera. A logica do jogo pula de casa em casa, mas a camera
- * "desliza": ela guarda de onde saiu (de...) e para onde vai (para...) e,
- * a cada quadro, anda um pouco entre os dois (progresso de 0 ate 1).
- */
+// ---- Camera ----------------------------------------------------------------
+
+// Uma "pose" da camera: onde ela esta no chao (x, z) e para onde olha (angulo)
 typedef struct {
-    bool iniciada;
-    float x, z, angulo;             // onde a camera esta agora
-    float deX, deZ, deAngulo;       // onde a animacao comecou
-    float paraX, paraZ, paraAngulo; // onde a animacao termina
-    float progresso;                // 0 = comecando, 1 = terminou
-    Posicao posicaoAlvo;            // ultima casa do jogador que a camera viu
-    Direcao direcaoAlvo;            // ultima direcao do jogador que a camera viu
+    float x, z, angulo;
+} Pose;
+
+// A logica pula de casa em casa, mas a camera "desliza" da pose "de" ate a
+// pose "para"; progresso vai de 0 (comecando) ate 1 (terminou).
+typedef struct {
+    Pose atual, de, para;
+    float progresso;
+    Posicao posicaoAlvo;  // ultima casa e direcao do jogador que a camera viu
+    Direcao direcaoAlvo;
 } CameraJogo;
 
+// Comeca zerada, na casa (0,0), que e sempre parede: na primeira atualizacao
+// o jogador esta longe, e a regra do "pulo grande" ja coloca a camera nele.
 static CameraJogo cam = { 0 };
 
-// Angulo (em radianos) para onde cada direcao aponta no plano x/z.
-// 0 = olhando para +x (direita). Como z = linha, "baixo" no mapa e +z.
-static float anguloDaDirecao(Direcao direcao) {
-    switch (direcao) {
-        case DIR_DIREITA:  return 0.0f;
-        case DIR_BAIXO:    return PI / 2.0f;
-        case DIR_ESQUERDA: return PI;
-        case DIR_CIMA:     return -PI / 2.0f;
-    }
-    return 0.0f;
+// Angulo (em radianos) de cada direcao no plano x/z. 0 = olhando para +x
+// (direita); como z = linha, "baixo" no mapa e +z.
+static const float ANGULO[] = { [DIR_DIREITA] = 0.0f, [DIR_BAIXO] = PI / 2.0f,
+                                [DIR_ESQUERDA] = PI,  [DIR_CIMA]  = -PI / 2.0f };
+
+// Meio da casa n no mundo 3D (serve para linha -> z e para coluna -> x)
+static float centro(int n) {
+    return (float)n + 0.5f;
+}
+
+// Deixa um giro entre -180 e +180 graus (em radianos) para a camera girar pelo
+// caminho mais curto. Ex.: de -90 (cima) para 180 (esquerda) daria 270 graus
+// (3/4 de volta); ajustado vira -90, so 1/4 de volta para o outro lado.
+static float giroMaisCurto(float giro) {
+    while (giro >  PI) giro -= 2.0f * PI;
+    while (giro < -PI) giro += 2.0f * PI;
+    return giro;
+}
+
+// Pose da camera parada na casa do jogador, olhando para a direcao dele
+static Pose poseDoJogador(Jogador *jogador) {
+    return (Pose){ centro(jogador->posicao.coluna), centro(jogador->posicao.linha), ANGULO[jogador->direcao] };
 }
 
 // Pula a camera direto para a casa e a direcao do jogador (sem animacao):
@@ -70,90 +85,65 @@ static float anguloDaDirecao(Direcao direcao) {
 void render3dReiniciarCamera(Jogo *jogo) {
     if (jogo == NULL) return;
 
-    // +0.5 coloca a camera no meio da casa
-    cam.x = cam.deX = cam.paraX = (float)jogo->jogador.posicao.coluna + 0.5f;
-    cam.z = cam.deZ = cam.paraZ = (float)jogo->jogador.posicao.linha + 0.5f;
-    cam.angulo = cam.deAngulo = cam.paraAngulo = anguloDaDirecao(jogo->jogador.direcao);
-    cam.progresso = 1.0f;
+    cam.atual = poseDoJogador(&jogo->jogador);
+    cam.progresso = 1.0f; // nenhuma animacao em andamento
     cam.posicaoAlvo = jogo->jogador.posicao;
     cam.direcaoAlvo = jogo->jogador.direcao;
-    cam.iniciada = true;
 }
 
 // Chamada todo quadro: percebe quando o jogador mudou de casa ou de direcao
 // e faz a camera deslizar ate la em TEMPO_TRANSICAO segundos
 void render3dAtualizarCamera(Jogo *jogo, float dt) {
     if (jogo == NULL) return;
-    if (!cam.iniciada) {
-        render3dReiniciarCamera(jogo);
-        return;
-    }
 
     Posicao p = jogo->jogador.posicao;
     Direcao d = jogo->jogador.direcao;
 
-    // O jogador mudou de casa ou de direcao: comeca uma nova animacao
-    // a partir de onde a camera esta agora
+    // O jogador mudou: comeca uma nova animacao a partir de onde a camera esta
     if (p.linha != cam.posicaoAlvo.linha || p.coluna != cam.posicaoAlvo.coluna || d != cam.direcaoAlvo) {
-        float novoX = (float)p.coluna + 0.5f;
-        float novoZ = (float)p.linha + 0.5f;
+        Pose alvo = poseDoJogador(&jogo->jogador);
 
         // Pulo de mais de uma casa (ex.: troca de andar): vai direto, sem animar
-        if (fabsf(novoX - cam.x) + fabsf(novoZ - cam.z) > 1.5f) {
+        if (fabsf(alvo.x - cam.atual.x) + fabsf(alvo.z - cam.atual.z) > 1.5f) {
             render3dReiniciarCamera(jogo);
             return;
         }
 
-        cam.deX = cam.x;
-        cam.deZ = cam.z;
-        cam.deAngulo = cam.angulo;
-        cam.paraX = novoX;
-        cam.paraZ = novoZ;
-
-        // Gira pelo caminho mais curto: a diferenca fica entre -180 e +180 graus.
-        // Sem isso, ir de -90 (cima) para 180 (esquerda) daria 3/4 de volta.
-        float diferenca = anguloDaDirecao(d) - cam.angulo;
-        while (diferenca >  PI) diferenca -= 2.0f * PI;
-        while (diferenca < -PI) diferenca += 2.0f * PI;
-        cam.paraAngulo = cam.angulo + diferenca;
-
+        alvo.angulo = cam.atual.angulo + giroMaisCurto(alvo.angulo - cam.atual.angulo);
+        cam.de = cam.atual;
+        cam.para = alvo;
         cam.progresso = 0.0f;
         cam.posicaoAlvo = p;
         cam.direcaoAlvo = d;
     }
 
-    if (cam.progresso < 1.0f) {
-        cam.progresso += dt / TEMPO_TRANSICAO;
-        if (cam.progresso > 1.0f) cam.progresso = 1.0f;
+    if (cam.progresso >= 1.0f) return; // parada: nada para animar
 
-        // Curva "smoothstep": comeca devagar, acelera e freia no final
-        float s = cam.progresso * cam.progresso * (3.0f - 2.0f * cam.progresso);
-        cam.x = cam.deX + (cam.paraX - cam.deX) * s;
-        cam.z = cam.deZ + (cam.paraZ - cam.deZ) * s;
-        cam.angulo = cam.deAngulo + (cam.paraAngulo - cam.deAngulo) * s;
-    }
+    cam.progresso = fminf(cam.progresso + dt / TEMPO_TRANSICAO, 1.0f);
+
+    // Curva "smoothstep" (comeca devagar, acelera e freia no final) e, com ela,
+    // o ponto entre "de" e "para": de + (para - de) * s
+    float t = cam.progresso, s = t * t * (3.0f - 2.0f * t);
+    cam.atual.x      = cam.de.x + (cam.para.x - cam.de.x) * s;
+    cam.atual.z      = cam.de.z + (cam.para.z - cam.de.z) * s;
+    cam.atual.angulo = cam.de.angulo + (cam.para.angulo - cam.de.angulo) * s;
 }
 
-// ---------------------------------------------------------------------------
-// Escuridao: quanto mais longe da camera, mais escura a cor (sem shaders).
-// ---------------------------------------------------------------------------
+// ---- Escuridao: quanto mais longe da camera, mais escura a cor (sem shaders)
 
 // Fator de luz entre 0 (preto) e 1 (cor original) para um ponto do chao.
 // Usa 1 - (distancia/raio)^2: perto fica bem iluminado e a luz cai rapido
 // perto do limite do raio, como uma lanterna.
 static float luzEm(float x, float z) {
-    float dx = x - cam.x;
-    float dz = z - cam.z;
-    float d2 = (dx * dx + dz * dz) / (RAIO_VISAO * RAIO_VISAO);
-    float luz = 1.0f - d2;
-    if (luz < 0.0f) luz = 0.0f;
-    return luz;
+    float dx = x - cam.atual.x;
+    float dz = z - cam.atual.z;
+    float luz = 1.0f - (dx * dx + dz * dz) / (RAIO_VISAO * RAIO_VISAO);
+    return fmaxf(luz, 0.0f);
 }
 
 // Multiplica r, g e b pelo fator (0 a 1); a transparencia (a) nao muda
 static Color escalarCor(Color cor, float fator) {
-    if (fator > 1.0f) fator = 1.0f;
-    if (fator < 0.0f) fator = 0.0f;
+    fator = fminf(fmaxf(fator, 0.0f), 1.0f);
     return (Color){
         (unsigned char)(cor.r * fator),
         (unsigned char)(cor.g * fator),
@@ -169,11 +159,9 @@ static void vertice(Vector3 v, Color cor) {
     rlVertex3f(v.x, v.y, v.z);
 }
 
-// Quadrilatero (dois triangulos) com a escuridao calculada em cada canto.
-// A placa de video faz o degrade entre os cantos, entao uma parede comprida
-// vai escurecendo aos poucos em vez de mudar de cor de uma vez.
-// Os cantos a, b, c, d vem em sentido anti-horario vistos do lado que
-// deve aparecer (o outro lado e descartado pela raylib).
+// Quadrilatero (dois triangulos) com a escuridao calculada em cada canto: a
+// placa de video faz o degrade entre os cantos. Os cantos a, b, c, d vem em
+// sentido anti-horario vistos do lado que deve aparecer (o outro e descartado).
 static void desenharQuad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color cor) {
     rlBegin(RL_TRIANGLES);
         vertice(a, cor); vertice(b, cor); vertice(c, cor);
@@ -181,101 +169,91 @@ static void desenharQuad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color cor) 
     rlEnd();
 }
 
+// Retangulo deitado na altura y, de (x0, z0) ate (x1, z1).
+// paraCima = true: visivel de cima (piso). false: visivel de baixo (teto).
+static void desenharRetanguloDeitado(float x0, float z0, float x1, float z1, float y, bool paraCima, Color cor) {
+    Vector3 a = { x0, y, z0 }, b = { x0, y, z1 }, c = { x1, y, z1 }, d = { x1, y, z0 };
+    if (paraCima) desenharQuad(a, b, c, d, cor);
+    else          desenharQuad(a, d, c, b, cor); // ordem inversa vira a face
+}
+
+// ---- Cenario: paredes, piso e teto -----------------------------------------
+
 // Fora do mapa conta como parede (nao precisa desenhar a face para fora)
 static bool ehParede3D(Mapa *mapa, int linha, int coluna) {
     if (linha < 0 || linha >= mapa->linhas || coluna < 0 || coluna >= mapa->colunas) return true;
     return mapa->matriz[linha][coluna] == '#';
 }
 
-// ---------------------------------------------------------------------------
-// Cenario: paredes, piso e teto
-// ---------------------------------------------------------------------------
+// Uma face vertical de parede, com rodape escuro embaixo. (xEsq, zEsq) e
+// (xDir, zDir) sao os cantos no chao, da esquerda para a direita vistos de
+// fora da parede. sombra < 1 escurece as faces leste/oeste (volume nas quinas).
+static void desenharFaceParede(float xEsq, float zEsq, float xDir, float zDir, float sombra) {
+    Vector3 esqChao   = { xEsq, 0.0f, zEsq },          dirChao   = { xDir, 0.0f, zDir };
+    Vector3 esqRodape = { xEsq, ALTURA_RODAPE, zEsq }, dirRodape = { xDir, ALTURA_RODAPE, zDir };
+    Vector3 esqTopo   = { xEsq, ALTURA_PAREDE, zEsq }, dirTopo   = { xDir, ALTURA_PAREDE, zDir };
 
-// Uma face vertical de parede. "esq" e "dir" sao os cantos de baixo, vistos
-// de frente (de fora da parede). sombra < 1 escurece as faces leste/oeste
-// para as quinas ficarem visiveis (volume).
-static void desenharFaceParede(Vector3 esq, Vector3 dir, float sombra) {
-    Color parede = escalarCor(COR_PAREDE_3D, sombra);
-    Color rodape = escalarCor(COR_RODAPE_3D, sombra);
-
-    Vector3 esqRodape = { esq.x, ALTURA_RODAPE, esq.z };
-    Vector3 dirRodape = { dir.x, ALTURA_RODAPE, dir.z };
-    Vector3 esqTopo   = { esq.x, ALTURA_PAREDE, esq.z };
-    Vector3 dirTopo   = { dir.x, ALTURA_PAREDE, dir.z };
-
-    desenharQuad(esq, dir, dirRodape, esqRodape, rodape);           // faixa escura embaixo
-    desenharQuad(esqRodape, dirRodape, dirTopo, esqTopo, parede);   // resto da parede
+    desenharQuad(esqChao, dirChao, dirRodape, esqRodape, escalarCor(COR_RODAPE_3D, sombra));
+    desenharQuad(esqRodape, dirRodape, dirTopo, esqTopo, escalarCor(COR_PAREDE_3D, sombra));
 }
 
 // '#' vira um cubo, mas so desenhamos as faces que encostam em piso:
 // as faces entre duas paredes nunca aparecem, entao nao gastamos tempo nelas.
 static void desenharParede3D(Mapa *mapa, int i, int j) {
-    float x0 = (float)j, x1 = (float)j + 1.0f;
-    float z0 = (float)i, z1 = (float)i + 1.0f;
+    float x0 = (float)j, x1 = x0 + 1.0f;
+    float z0 = (float)i, z1 = z0 + 1.0f;
 
-    if (!ehParede3D(mapa, i + 1, j)) desenharFaceParede((Vector3){ x0, 0, z1 }, (Vector3){ x1, 0, z1 }, 1.0f);  // face sul
-    if (!ehParede3D(mapa, i - 1, j)) desenharFaceParede((Vector3){ x1, 0, z0 }, (Vector3){ x0, 0, z0 }, 1.0f);  // face norte
-    if (!ehParede3D(mapa, i, j + 1)) desenharFaceParede((Vector3){ x1, 0, z1 }, (Vector3){ x1, 0, z0 }, 0.75f); // face leste
-    if (!ehParede3D(mapa, i, j - 1)) desenharFaceParede((Vector3){ x0, 0, z0 }, (Vector3){ x0, 0, z1 }, 0.75f); // face oeste
+    if (!ehParede3D(mapa, i + 1, j)) desenharFaceParede(x0, z1, x1, z1, 1.0f);  // sul
+    if (!ehParede3D(mapa, i - 1, j)) desenharFaceParede(x1, z0, x0, z0, 1.0f);  // norte
+    if (!ehParede3D(mapa, i, j + 1)) desenharFaceParede(x1, z1, x1, z0, 0.75f); // leste
+    if (!ehParede3D(mapa, i, j - 1)) desenharFaceParede(x0, z0, x0, z1, 0.75f); // oeste
 }
 
-// Piso (virado para cima) e teto (virado para baixo) de uma casa andavel.
+// Piso e teto de uma casa andavel.
 // Corredor: cinza com uma placa mais clara no meio. Sala: xadrez marrom.
-static void desenharPisoTeto3D(int i, int j, char tipo) {
-    float x0 = (float)j, x1 = (float)j + 1.0f;
-    float z0 = (float)i, z1 = (float)i + 1.0f;
+static void desenharPisoTeto3D(int i, int j, bool corredor) {
+    float x0 = (float)j, x1 = x0 + 1.0f;
+    float z0 = (float)i, z1 = z0 + 1.0f;
+    Color sala = ((i + j) % 2 == 0) ? COR_SALA_A_3D : COR_SALA_B_3D; // xadrez
 
-    if (tipo == '.') {
-        desenharQuad((Vector3){ x0, 0, z0 }, (Vector3){ x0, 0, z1 }, (Vector3){ x1, 0, z1 }, (Vector3){ x1, 0, z0 }, COR_CORREDOR_3D);
+    desenharRetanguloDeitado(x0, z0, x1, z1, 0.0f, true, corredor ? COR_CORREDOR_3D : sala);
+
+    if (corredor) {
         // Placa um pouquinho acima do chao (0.005) para nao "brigar" com ele na tela
-        float m = 0.08f, y = 0.005f;
-        desenharQuad((Vector3){ x0 + m, y, z0 + m }, (Vector3){ x0 + m, y, z1 - m },
-                     (Vector3){ x1 - m, y, z1 - m }, (Vector3){ x1 - m, y, z0 + m }, COR_PLACA_3D);
-    } else {
-        Color cor = ((i + j) % 2 == 0) ? COR_SALA_A_3D : COR_SALA_B_3D;
-        desenharQuad((Vector3){ x0, 0, z0 }, (Vector3){ x0, 0, z1 }, (Vector3){ x1, 0, z1 }, (Vector3){ x1, 0, z0 }, cor);
+        float m = 0.08f;
+        desenharRetanguloDeitado(x0 + m, z0 + m, x1 - m, z1 - m, 0.005f, true, COR_PLACA_3D);
     }
 
-    // Teto: mesma casa, na altura da parede, com os cantos na ordem inversa
-    // para a face ficar virada para baixo
-    float h = ALTURA_PAREDE;
-    desenharQuad((Vector3){ x0, h, z0 }, (Vector3){ x1, h, z0 }, (Vector3){ x1, h, z1 }, (Vector3){ x0, h, z1 }, COR_TETO_3D);
+    desenharRetanguloDeitado(x0, z0, x1, z1, ALTURA_PAREDE, false, COR_TETO_3D);
 }
 
-// ---------------------------------------------------------------------------
-// Objetos: moveis, escada, professor e baterias
+// ---- Objetos: moveis, escada, professor e baterias -------------------------
 // Cada objeto e pequeno, entao usa uma luz so (a do centro da casa).
-// ---------------------------------------------------------------------------
 
 // Cubo com a cor escurecida e as arestas marcadas com uma cor mais escura
-static void cuboComBorda(Vector3 centro, Vector3 tamanho, Color cor, Color borda, float luz) {
-    DrawCubeV(centro, tamanho, escalarCor(cor, luz));
-    DrawCubeWires(centro, tamanho.x, tamanho.y, tamanho.z, escalarCor(borda, luz));
+static void cuboComBorda(Vector3 meio, Vector3 tamanho, Color cor, Color borda, float luz) {
+    DrawCubeV(meio, tamanho, escalarCor(cor, luz));
+    DrawCubeWires(meio, tamanho.x, tamanho.y, tamanho.z, escalarCor(borda, luz));
 }
 
 // Mesa 'M': tampo de madeira e quatro pernas
-static void desenharMesa3D(int i, int j) {
-    float cx = (float)j + 0.5f, cz = (float)i + 0.5f;
-    float luz = luzEm(cx, cz);
-
+static void desenharMesa3D(float cx, float cz, float luz) {
     cuboComBorda((Vector3){ cx, 0.43f, cz }, (Vector3){ 0.84f, 0.06f, 0.64f }, COR_MADEIRA_3D, COR_MADEIRA_E_3D, luz);
 
-    // Pernas nos quatro cantos (sinais de dx e dz)
+    // Pernas nos 4 cantos: k % 2 escolhe esquerda/direita e k < 2, frente/tras
     for (int k = 0; k < 4; k++) {
-        float dx = (k % 2 == 0) ? -0.36f : 0.36f;
-        float dz = (k < 2) ? -0.26f : 0.26f;
-        DrawCube((Vector3){ cx + dx, 0.2f, cz + dz }, 0.06f, 0.4f, 0.06f, escalarCor(COR_MADEIRA_E_3D, luz));
+        Vector3 perna = { cx + (k % 2 ? 0.36f : -0.36f), 0.2f, cz + (k < 2 ? -0.26f : 0.26f) };
+        DrawCube(perna, 0.06f, 0.4f, 0.06f, escalarCor(COR_MADEIRA_E_3D, luz));
     }
 }
 
 // Computador 'C': bloco baixo de metal com um monitor em cima
-static void desenharComputador3D(int i, int j) {
-    float cx = (float)j + 0.5f, cz = (float)i + 0.5f;
-    float luz = luzEm(cx, cz);
+static void desenharComputador3D(float cx, float cz, float luz) {
+    Color metalEscuro = escalarCor(COR_METAL_E_3D, luz);
 
     cuboComBorda((Vector3){ cx, 0.22f, cz }, (Vector3){ 0.84f, 0.44f, 0.64f }, COR_METAL_3D, COR_METAL_E_3D, luz);
-    DrawCube((Vector3){ cx, 0.47f, cz }, 0.06f, 0.06f, 0.06f, escalarCor(COR_METAL_E_3D, luz)); // pe do monitor
-    DrawCube((Vector3){ cx, 0.62f, cz }, 0.5f, 0.32f, 0.08f, escalarCor(COR_METAL_E_3D, luz));  // carcaca
+    DrawCube((Vector3){ cx, 0.47f, cz }, 0.06f, 0.06f, 0.06f, metalEscuro); // pe do monitor
+    DrawCube((Vector3){ cx, 0.62f, cz }, 0.5f, 0.32f, 0.08f, metalEscuro);  // carcaca
 
     // A tela e um pouco mais grossa que a carcaca, entao aparece dos dois lados.
     // Ela emite luz: nunca fica mais escura que 50%.
@@ -286,8 +264,8 @@ static void desenharComputador3D(int i, int j) {
 static void desenharEscada3D(Mapa *mapa, bool liberada) {
     if (mapa->saida.linha < 0) return;
 
-    float cx = (float)mapa->saida.coluna + 0.5f;
-    float cz = (float)mapa->saida.linha + 0.5f;
+    float cx = centro(mapa->saida.coluna);
+    float cz = centro(mapa->saida.linha);
     float luz = luzEm(cx, cz);
     if (luz <= 0.0f) return;              // longe demais: nao desenha
     if (liberada) luz = fmaxf(luz, 0.6f); // verde liberada brilha no escuro
@@ -298,8 +276,8 @@ static void desenharEscada3D(Mapa *mapa, bool liberada) {
     for (int k = 0; k < 4; k++) {
         float altura = 0.1f * (float)(k + 1);          // cada degrau e 0.1 mais alto
         float z = cz + 0.375f - (float)k * 0.25f;      // e fica 0.25 mais para tras
-        cuboComBorda((Vector3){ cx, altura / 2.0f, z }, (Vector3){ 0.9f, altura, 0.25f },
-                     k % 2 == 0 ? claro : escuro, escuro, luz);
+        Color cor = (k % 2 == 0) ? claro : escuro;     // degraus alternam de cor
+        cuboComBorda((Vector3){ cx, altura / 2.0f, z }, (Vector3){ 0.9f, altura, 0.25f }, cor, escuro, luz);
     }
 }
 
@@ -307,8 +285,8 @@ static void desenharEscada3D(Mapa *mapa, bool liberada) {
 static void desenharProfessor3D(Professor *professor) {
     if (professor->posicao.linha < 0) return;
 
-    float cx = (float)professor->posicao.coluna + 0.5f;
-    float cz = (float)professor->posicao.linha + 0.5f;
+    float cx = centro(professor->posicao.coluna);
+    float cz = centro(professor->posicao.linha);
     float luz = luzEm(cx, cz);
     if (luz <= 0.0f) return;
 
@@ -319,27 +297,27 @@ static void desenharProfessor3D(Professor *professor) {
     if (!professor->ajudado) {
         // O "!" brilha (minimo 70% de luz) para ser achado de longe
         Color amarelo = escalarCor(YELLOW, fmaxf(luz, 0.7f));
-        DrawCube((Vector3){ cx, 0.95f, cz }, 0.04f, 0.08f, 0.04f, amarelo);
-        DrawCube((Vector3){ cx, 0.87f, cz }, 0.04f, 0.03f, 0.04f, amarelo);
+        DrawCube((Vector3){ cx, 0.95f, cz }, 0.04f, 0.08f, 0.04f, amarelo); // traco
+        DrawCube((Vector3){ cx, 0.87f, cz }, 0.04f, 0.03f, 0.04f, amarelo); // ponto
     }
 }
 
 // Baterias: pilha azul flutuando e pulsando, com um brilho transparente em volta
 static void desenharBaterias3D(Item *itens) {
     float tempo = (float)GetTime();
+    // sin() faz o valor ir e voltar: o brilho de todas as baterias pulsa junto
+    float pulso = 0.5f + 0.5f * sinf(tempo * 4.0f);
 
     for (Item *atual = itens; atual != NULL; atual = atual->next) {
-        float cx = (float)atual->posicao.coluna + 0.5f;
-        float cz = (float)atual->posicao.linha + 0.5f;
+        float cx = centro(atual->posicao.coluna);
+        float cz = centro(atual->posicao.linha);
         float luz = luzEm(cx, cz);
         if (luz <= 0.0f) continue;
 
         // Brilham: mesmo longe nunca ficam mais escuras que 55%
         float brilho = fmaxf(luz, 0.55f);
-        // sin() faz o valor ir e voltar: a bateria sobe/desce e o brilho pulsa.
-        // Somar a coluna faz cada bateria balancar num ritmo diferente.
+        // Sobe e desce; somar a coluna faz cada bateria balancar num ritmo diferente
         float y = 0.22f + 0.04f * sinf(tempo * 3.0f + (float)atual->posicao.coluna);
-        float pulso = 0.5f + 0.5f * sinf(tempo * 4.0f);
 
         DrawCylinder((Vector3){ cx, y - 0.11f, cz }, 0.07f, 0.07f, 0.22f, 12, escalarCor(COR_BATERIA_3D, brilho)); // corpo
         DrawCylinder((Vector3){ cx, y + 0.11f, cz }, 0.03f, 0.03f, 0.04f, 8, escalarCor(LIGHTGRAY, brilho));      // polo +
@@ -347,48 +325,57 @@ static void desenharBaterias3D(Item *itens) {
     }
 }
 
+// ---- Cena completa ---------------------------------------------------------
+
+// Desenha uma casa do mapa: parede, ou piso/teto com o movel que estiver nela
+static void desenharCasa3D(Mapa *mapa, int i, int j) {
+    char c = mapa->matriz[i][j];
+
+    if (c == '#') {
+        desenharParede3D(mapa, i, j);
+        return;
+    }
+
+    desenharPisoTeto3D(i, j, c == '.'); // moveis ficam em salas: piso de sala
+
+    float cx = centro(j), cz = centro(i);
+    if (c == 'M') desenharMesa3D(cx, cz, luzEm(cx, cz));
+    if (c == 'C') desenharComputador3D(cx, cz, luzEm(cx, cz));
+}
+
 // Monta a camera nos olhos do jogador e desenha, nesta ordem: cenario
 // (paredes, piso, teto, moveis), escada, professor e baterias
 void desenharCena3D(Jogo *jogo) {
     if (jogo == NULL || jogo->mapa.matriz == NULL) return;
-    if (!cam.iniciada) render3dReiniciarCamera(jogo);
 
     Mapa *mapa = &jogo->mapa;
+    Pose olho = cam.atual;
 
     // Camera nos olhos do jogador, olhando 1 casa para a frente na direcao do angulo
-    Camera3D camera = { 0 };
-    camera.position = (Vector3){ cam.x, ALTURA_OLHOS, cam.z };
-    camera.target   = (Vector3){ cam.x + cosf(cam.angulo), ALTURA_OLHOS, cam.z + sinf(cam.angulo) };
-    camera.up       = (Vector3){ 0.0f, 1.0f, 0.0f };
-    camera.fovy     = CAMPO_VISAO;
-    camera.projection = CAMERA_PERSPECTIVE;
+    Camera3D camera = {
+        .position   = { olho.x, ALTURA_OLHOS, olho.z },
+        .target     = { olho.x + cosf(olho.angulo), ALTURA_OLHOS, olho.z + sinf(olho.angulo) },
+        .up         = { 0.0f, 1.0f, 0.0f },
+        .fovy       = CAMPO_VISAO,
+        .projection = CAMERA_PERSPECTIVE
+    };
 
     BeginMode3D(camera);
 
-        // So percorre o quadrado de casas em volta do jogador (raio + 1 de folga)
+        // So desenha as casas dentro do circulo de visao. O raio tem 1 casa de
+        // folga para que paredes que cruzam a borda aparecam ate escurecer.
         int raio = (int)RAIO_VISAO + 1;
-        int linhaCam = (int)cam.z, colunaCam = (int)cam.x;
+        float raioQuadrado = (RAIO_VISAO + 1.0f) * (RAIO_VISAO + 1.0f);
+        int linhaCam = (int)olho.z, colunaCam = (int)olho.x;
 
         for (int i = linhaCam - raio; i <= linhaCam + raio; i++) {
-            if (i < 0 || i >= mapa->linhas) continue;
             for (int j = colunaCam - raio; j <= colunaCam + raio; j++) {
-                if (j < 0 || j >= mapa->colunas) continue;
+                if (i < 0 || i >= mapa->linhas || j < 0 || j >= mapa->colunas) continue;
 
-                // Dentro do quadrado, pula as casas fora do circulo de visao.
-                // A folga de 1 casa garante que paredes que cruzam a borda do
-                // circulo aparecam ate escurecer por completo.
-                float dx = (float)j + 0.5f - cam.x, dz = (float)i + 0.5f - cam.z;
-                if (dx * dx + dz * dz > (RAIO_VISAO + 1.0f) * (RAIO_VISAO + 1.0f)) continue;
+                float dx = centro(j) - olho.x, dz = centro(i) - olho.z;
+                if (dx * dx + dz * dz > raioQuadrado) continue;
 
-                char c = mapa->matriz[i][j];
-                if (c == '#') {
-                    desenharParede3D(mapa, i, j);
-                } else {
-                    // Moveis ficam em salas, entao o piso embaixo deles e de sala
-                    desenharPisoTeto3D(i, j, (c == 'M' || c == 'C') ? ' ' : c);
-                    if (c == 'M') desenharMesa3D(i, j);
-                    if (c == 'C') desenharComputador3D(i, j);
-                }
+                desenharCasa3D(mapa, i, j);
             }
         }
 
