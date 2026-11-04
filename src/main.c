@@ -113,6 +113,8 @@ int main(void) {
 
                     if (tempoPasso >= INTERVALO_PASSO) {
                         tempoPasso = 0.0f;
+                        // Guarda o quadro antes do passo: o movimentar_jogador tambem mexe nele
+                        int quadroAnterior = jogo.jogador.frame;
 
                         if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) {
                             jogo.jogador.direcao = DIR_CIMA;
@@ -131,7 +133,10 @@ int main(void) {
                             movimentar_jogador(&jogo.jogador, &jogo.mapa, DIR_DIREITA);
                         }
 
-                        jogo.jogador.frame = (jogo.jogador.frame + 1) % 4;
+                        // Alterna entre o quadro 0 (parado) e o 1 (dando o passo). Na
+                        // folha de sprites as colunas 2 e 3 do perfil olham para o
+                        // lado contrario, e usa-las fazia o boneco andar de costas.
+                        jogo.jogador.frame = (quadroAnterior == 0) ? 1 : 0;
                     }
                 } else {
                     jogo.jogador.frame = 0;
