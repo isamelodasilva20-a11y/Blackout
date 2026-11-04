@@ -43,75 +43,70 @@ typedef struct {
     float x, z, angulo;
 } Pose;
 
-// A logica pula de casa em casa, mas a camera "desliza" da pose "de" ate a
-// pose "para"; progresso vai de 0 (comecando) ate 1 (terminou).
+ * Estado da camera. A logica do jogo pula de casa em casa, mas a camera
+ * "desliza": ela guarda de onde saiu (de...) e para onde vai (para...) e,
+ * a cada quadro, anda um pouco entre os dois (progresso de 0 ate 1).
+ */
 typedef struct {
-    Pose atual, de, para;
-    float progresso;
-    Posicao posicaoAlvo;  // ultima casa e direcao do jogador que a camera viu
-    Direcao direcaoAlvo;
+    bool iniciada;
+    float x, z, angulo;             // onde a camera esta agora
+    float deX, deZ, deAngulo;       // onde a animacao comecou
+    float paraX, paraZ, paraAngulo; // onde a animacao termina
+    float progresso;                // 0 = comecando, 1 = terminou
+    Posicao posicaoAlvo;            // ultima casa do jogador que a camera viu
+    Direcao direcaoAlvo;            // ultima direcao do jogador que a camera viu
 } CameraJogo;
 
 // Comeca zerada, na casa (0,0), que e sempre parede: na primeira atualizacao
 // o jogador esta longe, e a regra do "pulo grande" ja coloca a camera nele.
 static CameraJogo cam = { 0 };
 
-// Angulo (em radianos) de cada direcao no plano x/z. 0 = olhando para +x
-// (direita); como z = linha, "baixo" no mapa e +z.
-static const float ANGULO[] = { [DIR_DIREITA] = 0.0f, [DIR_BAIXO] = PI / 2.0f,
-                                [DIR_ESQUERDA] = PI,  [DIR_CIMA]  = -PI / 2.0f };
-
-// Meio da casa n no mundo 3D (serve para linha -> z e para coluna -> x)
-static float centro(int n) {
-    return (float)n + 0.5f;
+static float anguloDaDirecao(Direcao direcao) {
+    switch (direcao) {
+        case DIR_DIREITA:  return 0.0f;
+        case DIR_BAIXO:    return PI / 2.0f;
+        case DIR_ESQUERDA: return PI;
+        case DIR_CIMA:     return -PI / 2.0f;
+    }
+    return 0.0f;
 }
 
-// Deixa um giro entre -180 e +180 graus (em radianos) para a camera girar pelo
-// caminho mais curto. Ex.: de -90 (cima) para 180 (esquerda) daria 270 graus
-// (3/4 de volta); ajustado vira -90, so 1/4 de volta para o outro lado.
-static float giroMaisCurto(float giro) {
-    while (giro >  PI) giro -= 2.0f * PI;
-    while (giro < -PI) giro += 2.0f * PI;
-    return giro;
-}
-
-// Pose da camera parada na casa do jogador, olhando para a direcao dele
-static Pose poseDoJogador(Jogador *jogador) {
-    return (Pose){ centro(jogador->posicao.coluna), centro(jogador->posicao.linha), ANGULO[jogador->direcao] };
-}
-
-// Pula a camera direto para a casa e a direcao do jogador (sem animacao):
-// usada ao ligar o 3D e quando o jogador "teleporta" (troca de andar)
 void render3dReiniciarCamera(Jogo *jogo) {
     if (jogo == NULL) return;
 
-    cam.atual = poseDoJogador(&jogo->jogador);
-    cam.progresso = 1.0f; // nenhuma animacao em andamento
+    cam.x = cam.deX = cam.paraX = (float)jogo->jogador.posicao.coluna + 0.5f;
+    cam.z = cam.deZ = cam.paraZ = (float)jogo->jogador.posicao.linha + 0.5f;
+    cam.angulo = cam.deAngulo = cam.paraAngulo = anguloDaDirecao(jogo->jogador.direcao);
+    cam.progresso = 1.0f;
     cam.posicaoAlvo = jogo->jogador.posicao;
     cam.direcaoAlvo = jogo->jogador.direcao;
 }
 
-// Chamada todo quadro: percebe quando o jogador mudou de casa ou de direcao
-// e faz a camera deslizar ate la em TEMPO_TRANSICAO segundos
 void render3dAtualizarCamera(Jogo *jogo, float dt) {
     if (jogo == NULL) return;
 
     Posicao p = jogo->jogador.posicao;
     Direcao d = jogo->jogador.direcao;
 
-    // O jogador mudou: comeca uma nova animacao a partir de onde a camera esta
     if (p.linha != cam.posicaoAlvo.linha || p.coluna != cam.posicaoAlvo.coluna || d != cam.direcaoAlvo) {
         Pose alvo = poseDoJogador(&jogo->jogador);
 
-        // Pulo de mais de uma casa (ex.: troca de andar): vai direto, sem animar
-        if (fabsf(alvo.x - cam.atual.x) + fabsf(alvo.z - cam.atual.z) > 1.5f) {
+        if (fabsf(novoX - cam.x) + fabsf(novoZ - cam.z) > 1.5f) {
             render3dReiniciarCamera(jogo);
             return;
         }
 
-        alvo.angulo = cam.atual.angulo + giroMaisCurto(alvo.angulo - cam.atual.angulo);
-        cam.de = cam.atual;
-        cam.para = alvo;
+        cam.deX = cam.x;
+        cam.deZ = cam.z;
+        cam.deAngulo = cam.angulo;
+        cam.paraX = novoX;
+        cam.paraZ = novoZ;
+
+        float diferenca = anguloDaDirecao(d) - cam.angulo;
+        while (diferenca >  PI) diferenca -= 2.0f * PI;
+        while (diferenca < -PI) diferenca += 2.0f * PI;
+        cam.paraAngulo = cam.angulo + diferenca;
+
         cam.progresso = 0.0f;
         cam.posicaoAlvo = p;
         cam.direcaoAlvo = d;
@@ -121,12 +116,11 @@ void render3dAtualizarCamera(Jogo *jogo, float dt) {
 
     cam.progresso = fminf(cam.progresso + dt / TEMPO_TRANSICAO, 1.0f);
 
-    // Curva "smoothstep" (comeca devagar, acelera e freia no final) e, com ela,
-    // o ponto entre "de" e "para": de + (para - de) * s
-    float t = cam.progresso, s = t * t * (3.0f - 2.0f * t);
-    cam.atual.x      = cam.de.x + (cam.para.x - cam.de.x) * s;
-    cam.atual.z      = cam.de.z + (cam.para.z - cam.de.z) * s;
-    cam.atual.angulo = cam.de.angulo + (cam.para.angulo - cam.de.angulo) * s;
+        float s = cam.progresso * cam.progresso * (3.0f - 2.0f * cam.progresso);
+        cam.x = cam.deX + (cam.paraX - cam.deX) * s;
+        cam.z = cam.deZ + (cam.paraZ - cam.deZ) * s;
+        cam.angulo = cam.deAngulo + (cam.paraAngulo - cam.deAngulo) * s;
+    }
 }
 
 // ---- Escuridao: quanto mais longe da camera, mais escura a cor (sem shaders)
@@ -141,7 +135,6 @@ static float luzEm(float x, float z) {
     return fmaxf(luz, 0.0f);
 }
 
-// Multiplica r, g e b pelo fator (0 a 1); a transparencia (a) nao muda
 static Color escalarCor(Color cor, float fator) {
     fator = fminf(fmaxf(fator, 0.0f), 1.0f);
     return (Color){
@@ -152,7 +145,6 @@ static Color escalarCor(Color cor, float fator) {
     };
 }
 
-// Um vertice com a cor ja escurecida pela distancia dele ate a camera
 static void vertice(Vector3 v, Color cor) {
     Color c = escalarCor(cor, luzEm(v.x, v.z));
     rlColor4ub(c.r, c.g, c.b, c.a);
@@ -179,7 +171,16 @@ static void desenharRetanguloDeitado(float x0, float z0, float x1, float z1, flo
 
 // ---- Cenario: paredes, piso e teto -----------------------------------------
 
-// Fora do mapa conta como parede (nao precisa desenhar a face para fora)
+// Retangulo deitado na altura y, de (x0, z0) ate (x1, z1).
+// paraCima = true: visivel de cima (piso). false: visivel de baixo (teto).
+static void desenharRetanguloDeitado(float x0, float z0, float x1, float z1, float y, bool paraCima, Color cor) {
+    Vector3 a = { x0, y, z0 }, b = { x0, y, z1 }, c = { x1, y, z1 }, d = { x1, y, z0 };
+    if (paraCima) desenharQuad(a, b, c, d, cor);
+    else          desenharQuad(a, d, c, b, cor); // ordem inversa vira a face
+}
+
+// ---- Cenario: paredes, piso e teto -----------------------------------------
+
 static bool ehParede3D(Mapa *mapa, int linha, int coluna) {
     if (linha < 0 || linha >= mapa->linhas || coluna < 0 || coluna >= mapa->colunas) return true;
     return mapa->matriz[linha][coluna] == '#';
@@ -193,20 +194,18 @@ static void desenharFaceParede(float xEsq, float zEsq, float xDir, float zDir, f
     Vector3 esqRodape = { xEsq, ALTURA_RODAPE, zEsq }, dirRodape = { xDir, ALTURA_RODAPE, zDir };
     Vector3 esqTopo   = { xEsq, ALTURA_PAREDE, zEsq }, dirTopo   = { xDir, ALTURA_PAREDE, zDir };
 
-    desenharQuad(esqChao, dirChao, dirRodape, esqRodape, escalarCor(COR_RODAPE_3D, sombra));
-    desenharQuad(esqRodape, dirRodape, dirTopo, esqTopo, escalarCor(COR_PAREDE_3D, sombra));
+    desenharQuad(esq, dir, dirRodape, esqRodape, rodape);
+    desenharQuad(esqRodape, dirRodape, dirTopo, esqTopo, parede);
 }
 
-// '#' vira um cubo, mas so desenhamos as faces que encostam em piso:
-// as faces entre duas paredes nunca aparecem, entao nao gastamos tempo nelas.
 static void desenharParede3D(Mapa *mapa, int i, int j) {
     float x0 = (float)j, x1 = x0 + 1.0f;
     float z0 = (float)i, z1 = z0 + 1.0f;
 
-    if (!ehParede3D(mapa, i + 1, j)) desenharFaceParede(x0, z1, x1, z1, 1.0f);  // sul
-    if (!ehParede3D(mapa, i - 1, j)) desenharFaceParede(x1, z0, x0, z0, 1.0f);  // norte
-    if (!ehParede3D(mapa, i, j + 1)) desenharFaceParede(x1, z1, x1, z0, 0.75f); // leste
-    if (!ehParede3D(mapa, i, j - 1)) desenharFaceParede(x0, z0, x0, z1, 0.75f); // oeste
+    if (!ehParede3D(mapa, i + 1, j)) desenharFaceParede((Vector3){ x0, 0, z1 }, (Vector3){ x1, 0, z1 }, 1.0f);
+    if (!ehParede3D(mapa, i - 1, j)) desenharFaceParede((Vector3){ x1, 0, z0 }, (Vector3){ x0, 0, z0 }, 1.0f);
+    if (!ehParede3D(mapa, i, j + 1)) desenharFaceParede((Vector3){ x1, 0, z1 }, (Vector3){ x1, 0, z0 }, 0.75f);
+    if (!ehParede3D(mapa, i, j - 1)) desenharFaceParede((Vector3){ x0, 0, z0 }, (Vector3){ x0, 0, z1 }, 0.75f);
 }
 
 // Piso e teto de uma casa andavel.
@@ -236,73 +235,121 @@ static void cuboComBorda(Vector3 meio, Vector3 tamanho, Color cor, Color borda, 
     DrawCubeWires(meio, tamanho.x, tamanho.y, tamanho.z, escalarCor(borda, luz));
 }
 
-// Mesa 'M': tampo de madeira e quatro pernas
-static void desenharMesa3D(float cx, float cz, float luz) {
+static void desenharMesa3D(int i, int j) {
+    float cx = (float)j + 0.5f, cz = (float)i + 0.5f;
+    float luz = luzEm(cx, cz);
+
     cuboComBorda((Vector3){ cx, 0.43f, cz }, (Vector3){ 0.84f, 0.06f, 0.64f }, COR_MADEIRA_3D, COR_MADEIRA_E_3D, luz);
 
-    // Pernas nos 4 cantos: k % 2 escolhe esquerda/direita e k < 2, frente/tras
     for (int k = 0; k < 4; k++) {
         Vector3 perna = { cx + (k % 2 ? 0.36f : -0.36f), 0.2f, cz + (k < 2 ? -0.26f : 0.26f) };
         DrawCube(perna, 0.06f, 0.4f, 0.06f, escalarCor(COR_MADEIRA_E_3D, luz));
     }
 }
 
-// Computador 'C': bloco baixo de metal com um monitor em cima
-static void desenharComputador3D(float cx, float cz, float luz) {
-    Color metalEscuro = escalarCor(COR_METAL_E_3D, luz);
+static void desenharComputador3D(int i, int j) {
+    float cx = (float)j + 0.5f, cz = (float)i + 0.5f;
+    float luz = luzEm(cx, cz);
 
     cuboComBorda((Vector3){ cx, 0.22f, cz }, (Vector3){ 0.84f, 0.44f, 0.64f }, COR_METAL_3D, COR_METAL_E_3D, luz);
-    DrawCube((Vector3){ cx, 0.47f, cz }, 0.06f, 0.06f, 0.06f, metalEscuro); // pe do monitor
-    DrawCube((Vector3){ cx, 0.62f, cz }, 0.5f, 0.32f, 0.08f, metalEscuro);  // carcaca
-
-    // A tela e um pouco mais grossa que a carcaca, entao aparece dos dois lados.
-    // Ela emite luz: nunca fica mais escura que 50%.
+    DrawCube((Vector3){ cx, 0.47f, cz }, 0.06f, 0.06f, 0.06f, escalarCor(COR_METAL_E_3D, luz));
+    DrawCube((Vector3){ cx, 0.62f, cz }, 0.5f, 0.32f, 0.08f, escalarCor(COR_METAL_E_3D, luz));
     DrawCube((Vector3){ cx, 0.63f, cz }, 0.42f, 0.24f, 0.1f, escalarCor(COR_TELA_3D, fmaxf(luz, 0.5f)));
 }
 
-// Escada: 4 degraus subindo em direcao ao norte (-z). Cinza bloqueada, verde liberada.
 static void desenharEscada3D(Mapa *mapa, bool liberada) {
     if (mapa->saida.linha < 0) return;
 
     float cx = centro(mapa->saida.coluna);
     float cz = centro(mapa->saida.linha);
     float luz = luzEm(cx, cz);
-    if (luz <= 0.0f) return;              // longe demais: nao desenha
-    if (liberada) luz = fmaxf(luz, 0.6f); // verde liberada brilha no escuro
+    if (luz <= 0.0f) return;
+    if (liberada) luz = fmaxf(luz, 0.6f);
 
     Color claro  = liberada ? (Color){ 0, 210, 90, 255 } : (Color){ 135, 135, 140, 255 };
     Color escuro = liberada ? (Color){ 0, 105, 45, 255 } : (Color){  65,  65,  70, 255 };
 
     for (int k = 0; k < 4; k++) {
-        float altura = 0.1f * (float)(k + 1);          // cada degrau e 0.1 mais alto
-        float z = cz + 0.375f - (float)k * 0.25f;      // e fica 0.25 mais para tras
-        Color cor = (k % 2 == 0) ? claro : escuro;     // degraus alternam de cor
-        cuboComBorda((Vector3){ cx, altura / 2.0f, z }, (Vector3){ 0.9f, altura, 0.25f }, cor, escuro, luz);
+        float altura = 0.1f * (float)(k + 1);
+        float z = cz + 0.375f - (float)k * 0.25f;
+        cuboComBorda((Vector3){ cx, altura / 2.0f, z }, (Vector3){ 0.9f, altura, 0.25f },
+                     k % 2 == 0 ? claro : escuro, escuro, luz);
     }
 }
 
-// Professor: cilindro roxo (cinza depois de ajudado) com cabeca e um "!" amarelo
-static void desenharProfessor3D(Professor *professor) {
-    if (professor->posicao.linha < 0) return;
+// Professor: seleciona dinamicamente a pose (0 = Normal, 1 = Joinha) no array bidimensional [3][2]
+static void desenharProfessor3D(Professor *professor, Texture2D texturas[3][2], Camera3D camera) {
+    if (professor == NULL || professor->posicao.linha < 0) return;
 
     float cx = centro(professor->posicao.coluna);
     float cz = centro(professor->posicao.linha);
     float luz = luzEm(cx, cz);
     if (luz <= 0.0f) return;
 
-    Color cor = escalarCor(professor->ajudado ? GRAY : PURPLE, luz);
-    DrawCylinder((Vector3){ cx, 0.0f, cz }, 0.18f, 0.24f, 0.6f, 16, cor); // corpo (mais largo embaixo)
-    DrawSphere((Vector3){ cx, 0.72f, cz }, 0.12f, cor);                    // cabeca
+    int profID = professor->id;                 // ID do professor (0, 1 ou 2)
+    int poseIndex = professor->ajudado ? 1 : 0; // 0 = Normal, 1 = Joinha
+
+    Texture2D tex = texturas[profID][poseIndex];
+
+    if (tex.id != 0) {
+        Vector3 posSprite = { cx, 0.5f, cz };
+        DrawBillboard(camera, tex, posSprite, 1.0f, escalarCor(WHITE, luz));
+    } else {
+        Color cor = escalarCor(professor->ajudado ? GRAY : PURPLE, luz);
+        DrawCylinder((Vector3){ cx, 0.0f, cz }, 0.18f, 0.24f, 0.6f, 16, cor);
+        DrawSphere((Vector3){ cx, 0.72f, cz }, 0.12f, cor);
+    }
 
     if (!professor->ajudado) {
-        // O "!" brilha (minimo 70% de luz) para ser achado de longe
         Color amarelo = escalarCor(YELLOW, fmaxf(luz, 0.7f));
         DrawCube((Vector3){ cx, 0.95f, cz }, 0.04f, 0.08f, 0.04f, amarelo); // traco
         DrawCube((Vector3){ cx, 0.87f, cz }, 0.04f, 0.03f, 0.04f, amarelo); // ponto
     }
 }
 
-// Baterias: pilha azul flutuando e pulsando, com um brilho transparente em volta
+void desenharNickProfessor3D(Professor *professor) {
+    if (professor == NULL || professor->posicao.linha < 0) return;
+
+    float cx = (float)professor->posicao.coluna + 0.5f;
+    float cz = (float)professor->posicao.linha + 0.5f;
+    if (luzEm(cx, cz) <= 0.05f) return;
+
+    Camera3D camera = { 0 };
+    camera.position = (Vector3){ cam.x, ALTURA_OLHOS, cam.z };
+    camera.target   = (Vector3){ cam.x + cosf(cam.angulo), ALTURA_OLHOS, cam.z + sinf(cam.angulo) };
+    camera.up       = (Vector3){ 0.0f, 1.0f, 0.0f };
+    camera.fovy     = CAMPO_VISAO;
+    camera.projection = CAMERA_PERSPECTIVE;
+
+    Vector3 posCabeca = { cx, 1.15f, cz };
+
+    float dirX = cosf(cam.angulo);
+    float dirZ = sinf(cam.angulo);
+    float profDX = cx - cam.x;
+    float profDZ = cz - cam.z;
+
+    if ((profDX * dirX + profDZ * dirZ) <= 0.2f) return;
+
+    Vector2 posTela = GetWorldToScreen(posCabeca, camera);
+
+    if (posTela.x >= 0 && posTela.x <= GetScreenWidth() &&
+        posTela.y >= 0 && posTela.y <= GetScreenHeight()) {
+
+        float e = hudEscala();
+        int tamanhoFonte = (int)(14.0f * e);
+        if (tamanhoFonte < 10) tamanhoFonte = 10;
+
+        int larguraTexto = MeasureText(professor->nome, tamanhoFonte);
+        int posX = (int)posTela.x - (larguraTexto / 2);
+        int posY = (int)posTela.y;
+
+        DrawRectangle(posX - 6, posY - 2, larguraTexto + 12, tamanhoFonte + 4, Fade(BLACK, 0.65f));
+
+        Color corNick = professor->ajudado ? LIGHTGRAY : YELLOW;
+        DrawText(professor->nome, posX, posY, tamanhoFonte, corNick);
+    }
+}
+
 static void desenharBaterias3D(Item *itens) {
     float tempo = (float)GetTime();
     // sin() faz o valor ir e voltar: o brilho de todas as baterias pulsa junto
@@ -314,14 +361,13 @@ static void desenharBaterias3D(Item *itens) {
         float luz = luzEm(cx, cz);
         if (luz <= 0.0f) continue;
 
-        // Brilham: mesmo longe nunca ficam mais escuras que 55%
         float brilho = fmaxf(luz, 0.55f);
         // Sobe e desce; somar a coluna faz cada bateria balancar num ritmo diferente
         float y = 0.22f + 0.04f * sinf(tempo * 3.0f + (float)atual->posicao.coluna);
 
-        DrawCylinder((Vector3){ cx, y - 0.11f, cz }, 0.07f, 0.07f, 0.22f, 12, escalarCor(COR_BATERIA_3D, brilho)); // corpo
-        DrawCylinder((Vector3){ cx, y + 0.11f, cz }, 0.03f, 0.03f, 0.04f, 8, escalarCor(LIGHTGRAY, brilho));      // polo +
-        DrawSphere((Vector3){ cx, y, cz }, 0.2f + 0.04f * pulso, Fade(SKYBLUE, (0.12f + 0.12f * pulso) * brilho)); // brilho
+        DrawCylinder((Vector3){ cx, y - 0.11f, cz }, 0.07f, 0.07f, 0.22f, 12, escalarCor(COR_BATERIA_3D, brilho));
+        DrawCylinder((Vector3){ cx, y + 0.11f, cz }, 0.03f, 0.03f, 0.04f, 8, escalarCor(LIGHTGRAY, brilho));
+        DrawSphere((Vector3){ cx, y, cz }, 0.2f + 0.04f * pulso, Fade(SKYBLUE, (0.12f + 0.12f * pulso) * brilho));
     }
 }
 
@@ -343,8 +389,24 @@ static void desenharCasa3D(Mapa *mapa, int i, int j) {
     if (c == 'C') desenharComputador3D(cx, cz, luzEm(cx, cz));
 }
 
-// Monta a camera nos olhos do jogador e desenha, nesta ordem: cenario
-// (paredes, piso, teto, moveis), escada, professor e baterias
+// ---- Cena completa ---------------------------------------------------------
+
+// Desenha uma casa do mapa: parede, ou piso/teto com o movel que estiver nela
+static void desenharCasa3D(Mapa *mapa, int i, int j) {
+    char c = mapa->matriz[i][j];
+
+    if (c == '#') {
+        desenharParede3D(mapa, i, j);
+        return;
+    }
+
+    desenharPisoTeto3D(i, j, c == '.'); // moveis ficam em salas: piso de sala
+
+    float cx = centro(j), cz = centro(i);
+    if (c == 'M') desenharMesa3D(cx, cz, luzEm(cx, cz));
+    if (c == 'C') desenharComputador3D(cx, cz, luzEm(cx, cz));
+}
+
 void desenharCena3D(Jogo *jogo) {
     if (jogo == NULL || jogo->mapa.matriz == NULL) return;
 
@@ -370,28 +432,32 @@ void desenharCena3D(Jogo *jogo) {
 
         for (int i = linhaCam - raio; i <= linhaCam + raio; i++) {
             for (int j = colunaCam - raio; j <= colunaCam + raio; j++) {
-                if (i < 0 || i >= mapa->linhas || j < 0 || j >= mapa->colunas) continue;
+                if (j < 0 || j >= mapa->colunas) continue;
 
-                float dx = centro(j) - olho.x, dz = centro(i) - olho.z;
-                if (dx * dx + dz * dz > raioQuadrado) continue;
+                float dx = (float)j + 0.5f - cam.x, dz = (float)i + 0.5f - cam.z;
+                if (dx * dx + dz * dz > (RAIO_VISAO + 1.0f) * (RAIO_VISAO + 1.0f)) continue;
 
-                desenharCasa3D(mapa, i, j);
+                char c = mapa->matriz[i][j];
+                if (c == '#') {
+                    desenharParede3D(mapa, i, j);
+                } else {
+                    desenharPisoTeto3D(i, j, (c == 'M' || c == 'C') ? ' ' : c);
+                    if (c == 'M') desenharMesa3D(i, j);
+                    if (c == 'C') desenharComputador3D(i, j);
+                }
             }
         }
 
         desenharEscada3D(mapa, jogo->professor.ajudado);
-        desenharProfessor3D(&jogo->professor);
-        // Baterias por ultimo: o brilho e transparente e precisa do resto ja desenhado atras dele
+        desenharProfessor3D(&jogo->professor, jogo->texturasProfessores, camera);
         desenharBaterias3D(jogo->itens);
 
     EndMode3D();
 }
 
-// Mapa 2D pequeno no canto superior direito, para o jogador nao se perder no 3D
 void desenharMinimapa(Jogo *jogo) {
     if (jogo == NULL || jogo->mapa.matriz == NULL) return;
 
-    // Casa e margem crescem junto com a janela (minimo de 3px por casa)
     float escala = hudEscala();
     int t = (int)(CASA_MINIMAPA * escala);
     if (t < 3) t = 3;
@@ -399,17 +465,14 @@ void desenharMinimapa(Jogo *jogo) {
     int largura = jogo->mapa.colunas * t;
     int altura  = jogo->mapa.linhas * t;
 
-    // Canto superior direito da tela
     Vector2 origem = { (float)(GetScreenWidth() - largura - margem), (float)margem };
 
-    // Moldura escura atras do minimapa
     DrawRectangle((int)origem.x - 4, (int)origem.y - 4, largura + 8, altura + 8, Fade(BLACK, 0.75f));
     DrawRectangleLines((int)origem.x - 4, (int)origem.y - 4, largura + 8, altura + 8, Fade(RAYWHITE, 0.5f));
 
-    // As mesmas funcoes do modo 2D, so que com outra origem e casas pequenas
     desenharMapa2D(&jogo->mapa, origem, t);
     desenharSaida2D(&jogo->mapa, origem, t, jogo->professor.ajudado);
     desenhar_item(jogo->itens, origem, t);
-    desenhar_professor(&jogo->professor, origem, t);
+    desenhar_professor(jogo, origem, t);
     desenharSetaJogador2D(&jogo->jogador, origem, t);
 }

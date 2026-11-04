@@ -5,92 +5,111 @@
 #include "hud.h"
 #include "raylib.h"
 
-//atribui as carasterísticas do professor
-void inicializar_professor(Professor *professor, Posicao posicao, const char *nome, const char *pergunta, const char *resposta){
-    //verifica se o professor existe
-    if(professor==NULL)return;
+typedef struct {
+    const char *nome;
+    const char *pergunta;
+    const char *resposta;
+    TipoProfessor tipo;
+} DadosProfessorAndar;
+
+static const DadosProfessorAndar DADOS_PROFESSORES[] = {
+    { "Prof. Thiaguinho", "Qual especificador imprime um int em C?\nA) %s  B) %d  C) %f", "B", PROFESSOR_1 },
+    { "Prof. Daniel",      "Qual função libera a memória\nalocada com malloc?\nA) free  \nB) delete  \nC) clear  \nD) drop", "A", PROFESSOR_2 },
+    { "Prof. Péricles",     "Qual a principal funcao da plataforma Eden AI?\nA) Criar imagens 3D\nB) Agrupar conteudos e tutoria de estudos\nC) Compilar codigo C\nD) Formatar o computador", "B", PROFESSOR_3 },
+};
+
+// atribui as características do professor
+void inicializar_professor(Professor *professor, Posicao posicao, const char *nome, const char *pergunta, const char *resposta, TipoProfessor tipo) {
+    if (professor == NULL) return;
     professor->posicao = posicao;
     professor->nome = nome;
     professor->pergunta = pergunta;
     professor->resposta = resposta;
+    professor->id = tipo;
     professor->ajudado = false;
 }
 
-//uma pergunta diferente para cada andar (posição 0 = andar 1)
-typedef struct {
-    const char *pergunta;
-    const char *resposta;
-} PerguntaAndar;
-
-static const PerguntaAndar PERGUNTAS_ANDAR[] = {
-    { "Qual especificador imprime um int em C?\nA) %s  B) %d  C) %f", "B" },
-    { "Qual funcao libera a memoria\nalocada com malloc?\nA) free  B) delete  C) clear  D) drop", "A" },
-    { "Quantos bytes ocupa um char em C?\nA) 4  B) 2  C) 1  D) 8", "C" },
-};
-
-//escolhe a pergunta do andar e reaproveita o inicializar_professor,
-//que também volta o ajudado para false
-void inicializar_professor_andar(Professor *professor, Posicao posicao, int andar){
-    int total = sizeof(PERGUNTAS_ANDAR) / sizeof(PERGUNTAS_ANDAR[0]);
-    //se existirem mais andares que perguntas, elas se repetem
+// escolhe a pergunta do andar e reaproveita o inicializar_professor,
+// que também volta o ajudado para false
+void inicializar_professor_andar(Professor *professor, Posicao posicao, int andar) {
+    int total = sizeof(DADOS_PROFESSORES) / sizeof(DADOS_PROFESSORES[0]);
+    // se existirem mais andares que perguntas, elas se repetem
     int indice = (andar - 1) % total;
-    if(indice < 0) indice = 0;
-    inicializar_professor(professor, posicao, "Prof. Thiaguinho", PERGUNTAS_ANDAR[indice].pergunta, PERGUNTAS_ANDAR[indice].resposta);
+    if (indice < 0) indice = 0;
+
+    inicializar_professor(
+        professor,
+        posicao,
+        DADOS_PROFESSORES[indice].nome,
+        DADOS_PROFESSORES[indice].pergunta,
+        DADOS_PROFESSORES[indice].resposta,
+        DADOS_PROFESSORES[indice].tipo
+    );
 }
 
-//verifica se o jogador está falando com o professor
-//biblioteca bool declarada no jogo.h
-bool verificar_interacao_professor(Jogador *jogador, Professor *professor){
-    if(jogador==NULL || professor ==NULL || professor->ajudado)return false;
-    if(jogador->posicao.linha == professor->posicao.linha && jogador->posicao.coluna == professor->posicao.coluna)return true;
+// verifica se o jogador está falando com o professor
+// biblioteca bool declarada no jogo.h
+bool verificar_interacao_professor(Jogador *jogador, Professor *professor) {
+    if (jogador == NULL || professor == NULL || professor->ajudado) return false;
+    if (jogador->posicao.linha == professor->posicao.linha && jogador->posicao.coluna == professor->posicao.coluna) return true;
     return false;
 }
 
-//desenha a representação visual dos professor
-//origem = canto superior esquerdo do mapa na tela (no minimapa ela muda)
-void desenhar_professor(Professor *professor, Vector2 origem, int tamanhoCasa){
-    if(professor==NULL || professor->posicao.linha < 0)return;
+// desenha a representação visual dos professor
+// origem = canto superior esquerdo do mapa na tela (no minimapa ela muda)
+void desenhar_professor(const Jogo *jogo, Vector2 origem, int tamanhoCasa) {
+    if (jogo == NULL || jogo->professor.posicao.linha < 0) return;
 
-    //pega a posição exata do professor
-    int centroX = (int)origem.x + (professor->posicao.coluna * tamanhoCasa) + (tamanhoCasa / 2);
-    int centroY = (int)origem.y + (professor->posicao.linha * tamanhoCasa) + (tamanhoCasa / 2);
+    const Professor *professor = &jogo->professor;
 
-    //diferencia a cor do professor de acordo com seu status ajudado
-    Color corProfessor = professor->ajudado ? GRAY : PURPLE;
-    DrawCircle(centroX, centroY, (float)tamanhoCasa / 3.0f, corProfessor);
+    // Calcula a posição no mapa 2D
+    float posX = origem.x + (professor->posicao.coluna * tamanhoCasa);
+    float posY = origem.y + (professor->posicao.linha * tamanhoCasa);
 
-    //se não tiver sido ajudado possuirá uma ! na cabeça (no minimapa não cabe)
+    // Seleciona o ID do professor (0, 1 ou 2) e o estado (0 = Normal, 1 = Joinha)
+    int profID = professor->id;
+    int poseIndex = professor->ajudado ? 1 : 0;
+
+    Texture2D tex = jogo->texturasProfessores[profID][poseIndex];
+
+    // Define onde desenhar o sprite 24x24
+    Rectangle dest = { posX, posY, (float)tamanhoCasa, (float)tamanhoCasa };
+    Rectangle src = { 0, 0, (float)tex.width, (float)tex.height };
+
+    // Desenha o sprite em Pixel Art
+    DrawTexturePro(tex, src, dest, (Vector2){0, 0}, 0.0f, WHITE);
+
+    // Se ainda não foi ajudado, desenha o '!' amarelo em cima da cabeça
     if (!professor->ajudado && tamanhoCasa >= 12) {
-        DrawText("!", centroX - 2, centroY - (tamanhoCasa / 2) - 8, 10, YELLOW);
-        //centroX pega o centro horizontal
-        //centroY pega o centro vertical porem flutuando 8px acima
-        //tamanho 10 de letra
+        int centroX = (int)posX + (tamanhoCasa / 2);
+        DrawText("!", centroX - 2, (int)posY - 10, 10, YELLOW);
     }
 }
 
-//converte uma medida do tamanho base da janela (1024x640) para a janela atual
-static int escalar(int valorBase, float escala){
+
+// converte uma medida do tamanho base da janela (1024x640) para a janela atual
+static int escalar(int valorBase, float escala) {
     return (int)((float)valorBase * escala);
 }
 
-//tamanho de fonte escalado, nunca menor que 10 (mínimo legível)
-static int fonteQuiz(int tamanhoBase, float escala){
+// tamanho de fonte escalado, nunca menor que 10 (mínimo legível)
+static int fonteQuiz(int tamanhoBase, float escala) {
     int tamanho = escalar(tamanhoBase, escala);
     return tamanho < 10 ? 10 : tamanho;
 }
 
-//janela do quiz: escurece o jogo, mostra a pergunta e lê a resposta (A, B, C ou D).
-//depois mostra por 1,5 s se acertou ou errou; só fecha quando o jogador acerta
+// janela do quiz: escurece o jogo, mostra a pergunta e lê a resposta (A, B, C ou D).
+// depois mostra por 1,5 s se acertou ou errou; só fecha quando o jogador acerta
 void desenhar_quiz(Jogo *jogo) {
     if (jogo == NULL) return;
 
-    //todas as medidas do quiz crescem/diminuem junto com a janela
+    // todas as medidas do quiz crescem/diminuem junto com a janela
     float e = hudEscala();
 
-    //efeito de pause
+    // efeito de pause
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.7f));
 
-    //tela principal
+    // tela principal
     int larguraModal = escalar(400, e);
     int alturaModal = escalar(220, e);
     int posX = (GetScreenWidth() - larguraModal) / 2;
@@ -107,7 +126,7 @@ void desenhar_quiz(Jogo *jogo) {
         // Mostra a instrução enquanto aguarda resposta
         DrawText("Pressione [A], [B], [C] ou [D] para responder", posX + escalar(20, e), posY + escalar(190, e), fonteQuiz(12, e), LIGHTGRAY);
 
-        //verifica a resposta do teclado
+        // verifica a resposta do teclado
         const char *respostaJogador = NULL;
         if (IsKeyPressed(KEY_A)) respostaJogador = "A";
         if (IsKeyPressed(KEY_B)) respostaJogador = "B";
@@ -117,7 +136,7 @@ void desenhar_quiz(Jogo *jogo) {
         if (respostaJogador != NULL) {
             jogo->tempoInicioFeedback = GetTime();
 
-            //compara a resposta com o gabarito
+            // compara a resposta com o gabarito
             if (strcmp(respostaJogador, jogo->professor.resposta) == 0) {
                 jogo->estadoFeedback = FEEDBACK_ACERTOU;
                 concluir_ajuda_professor(&jogo->jogador, &jogo->professor);
@@ -127,7 +146,7 @@ void desenhar_quiz(Jogo *jogo) {
         }
     } 
     else {
-        //Renderização visual do Feedback (Acertou / Errou)
+        // Renderização visual do Feedback (Acertou / Errou)
         if (jogo->estadoFeedback == FEEDBACK_ACERTOU) {
             DrawRectangle(posX + escalar(20, e), posY + escalar(180, e), larguraModal - escalar(40, e), escalar(40, e), GREEN);
             DrawText("RESPOSTA CORRETA! Pendrive obtido!", posX + escalar(35, e), posY + escalar(192, e), fonteQuiz(16, e), WHITE);
@@ -137,7 +156,7 @@ void desenhar_quiz(Jogo *jogo) {
             DrawText("INCORRETO! Tente novamente.", posX + escalar(60, e), posY + escalar(192, e), fonteQuiz(16, e), WHITE);
         }
 
-        //conta um tempo pra voltar pra tela inicial
+        // conta um tempo pra voltar pra tela inicial
         if (GetTime() - jogo->tempoInicioFeedback >= 1.5) {
             if (jogo->estadoFeedback == FEEDBACK_ACERTOU) {
                 jogo->telaAtual = TELA_NORMAL;
@@ -147,9 +166,9 @@ void desenhar_quiz(Jogo *jogo) {
     }
 }
 
-//entrega o pendrive ao jogador, recarrega a bateria e muda a cor do professor
-void concluir_ajuda_professor(Jogador *jogador, Professor *professor){
-    if(jogador == NULL || professor == NULL || professor->ajudado)return;
+// entrega o pendrive ao jogador, recarrega a bateria e muda a cor do professor
+void concluir_ajuda_professor(Jogador *jogador, Professor *professor) {
+    if (jogador == NULL || professor == NULL || professor->ajudado) return;
 
     professor->ajudado = true;
     jogador->temPendrive = true;

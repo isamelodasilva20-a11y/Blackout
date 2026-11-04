@@ -31,8 +31,33 @@ int main(void) {
         SetWindowPosition((larguraMonitor - largura) / 2, (alturaMonitor - altura) / 2);
     }
 
-    Jogo jogo = {0}; // estado do jogo
+    Jogo jogo = {0};
+    
+    // Carregamento do jogador
     jogo.texturaJogador = LoadTexture("imagens/jogador.png");
+    SetTextureFilter(jogo.texturaJogador, TEXTURE_FILTER_POINT);
+
+    // --- PONTO 3: Carregamento das texturas dos 3 Professores (Normal e Joinha) ---
+    // Prof. Thiaguinho (ID: 0)
+    jogo.texturasProfessores[PROFESSOR_1][0] = LoadTexture("imagens/professor_1_normal.png");
+    jogo.texturasProfessores[PROFESSOR_1][1] = LoadTexture("imagens/professor_1_joinha.png");
+
+    // Prof. Daniel (ID: 1)
+    jogo.texturasProfessores[PROFESSOR_2][0] = LoadTexture("imagens/professor_2_normal.png");
+    jogo.texturasProfessores[PROFESSOR_2][1] = LoadTexture("imagens/professor_2_joinha.png");
+
+    // Prof. Péricles (ID: 2)
+    jogo.texturasProfessores[PROFESSOR_3][0] = LoadTexture("imagens/professor_3_normal.png");
+    jogo.texturasProfessores[PROFESSOR_3][1] = LoadTexture("imagens/professor_3_joinha.png");
+
+    // Aplica o filtro Point em todas as texturas para manter o visual Pixel Art nítido (24x24)
+    for (int p = 0; p < 3; p++) {
+        for (int pose = 0; pose < 2; pose++) {
+            SetTextureFilter(jogo.texturasProfessores[p][pose], TEXTURE_FILTER_POINT);
+        }
+    }
+
+
     jogo.jogador.vidas = VIDAS_INICIAIS; // as vidas valem para a partida toda, nao por andar
 
     // Começa no andar 1. O professor (posição e pergunta) também vem daqui.
@@ -42,6 +67,8 @@ int main(void) {
 
     float acumuladorTempo = 0.0f;
     float tempoInativo = 0.0f;
+    float tempoPasso = 0.0f; // Temporizador para controlar a velocidade do movimento contínuo
+    const float INTERVALO_PASSO = 0.15f; // Intervalo de 0.15s entre cada passo ao segurar a tecla
     int venceu = 0;
 
     while (carregou && !WindowShouldClose()) {
@@ -71,62 +98,77 @@ int main(void) {
             jogo.telaAtual = TELA_QUIZ;
         }
 
-        if (!venceu && jogo.telaAtual == TELA_NORMAL) {
+                if (!venceu && jogo.telaAtual == TELA_NORMAL) {
+            tempoPasso += GetFrameTime();
+
             if (jogo.modoVisao == 0) {
-                // --- Controles 2D: cada tecla anda uma casa naquela direção ---
-                int seMoveu = 0;
-                if (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_UP)) {
-                    jogo.jogador.direcao = DIR_CIMA; // ex: 0
-                    movimentar_jogador(&jogo.jogador, &jogo.mapa, DIR_CIMA);
-                    seMoveu = 1;
-                }
-                else if (IsKeyPressed(KEY_S) || IsKeyPressed(KEY_DOWN)) {
-                    jogo.jogador.direcao = DIR_BAIXO; // ex: 1
-                    movimentar_jogador(&jogo.jogador, &jogo.mapa, DIR_BAIXO);
-                    seMoveu = 1;
-                }
-                else if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT)) {
-                    jogo.jogador.direcao = DIR_ESQUERDA; // ex: 2
-                    movimentar_jogador(&jogo.jogador, &jogo.mapa, DIR_ESQUERDA);
-                    seMoveu = 1;
-                }
-                else if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT)) {
-                    jogo.jogador.direcao = DIR_DIREITA; // ex: 3
-                    movimentar_jogador(&jogo.jogador, &jogo.mapa, DIR_DIREITA);
-                    seMoveu = 1;
-                }
-                else {
-                    jogo.jogador.frame = 0;
-                }
-                if (seMoveu) {
-                    tempoInativo = 0.0f; // Reseta o contador ao se mover
-                    // Avança o frame de animação de caminhada (0 a 3)
-                    jogo.jogador.frame = (jogo.jogador.frame + 1) % 4;
+                // --- Controles 2D Contínuos (na main.c) ---
+                int tentandoMover = (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP) ||
+                                    IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN) ||
+                                    IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT) ||
+                                    IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT));
+
+                if (tentandoMover) {
+                    tempoInativo = 0.0f;
+
+                    if (tempoPasso >= INTERVALO_PASSO) {
+                        tempoPasso = 0.0f;
+
+                        if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) {
+                            jogo.jogador.direcao = DIR_CIMA;
+                            movimentar_jogador(&jogo.jogador, &jogo.mapa, DIR_CIMA);
+                        }
+                        else if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) {
+                            jogo.jogador.direcao = DIR_BAIXO;
+                            movimentar_jogador(&jogo.jogador, &jogo.mapa, DIR_BAIXO);
+                        }
+                        else if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) {
+                            jogo.jogador.direcao = DIR_ESQUERDA;
+                            movimentar_jogador(&jogo.jogador, &jogo.mapa, DIR_ESQUERDA);
+                        }
+                        else if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
+                            jogo.jogador.direcao = DIR_DIREITA;
+                            movimentar_jogador(&jogo.jogador, &jogo.mapa, DIR_DIREITA);
+                        }
+
+                        jogo.jogador.frame = (jogo.jogador.frame + 1) % 4;
+                    }
                 } else {
+                    jogo.jogador.frame = 0;
                     tempoInativo += GetFrameTime();
 
-                    // Se ficar 0.5 segundos sem apertar nada, vira para a frente (Idle)
                     if (tempoInativo >= 0.5f) {
                         jogo.jogador.direcao = DIR_BAIXO;
-                        jogo.jogador.frame = 0;
                     }
                 }
             } else {
-                // --- Controles 3D: andam/giram em relação a para onde o jogador olha ---
-                // (aqui não tem o "vira para a frente parado", senão a câmera giraria sozinha)
-                if (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_UP)) {
-                    movimentar_jogador(&jogo.jogador, &jogo.mapa, jogo.jogador.direcao); // uma casa para a frente
-                }
-                else if (IsKeyPressed(KEY_S) || IsKeyPressed(KEY_DOWN)) {
-                    recuar_jogador(&jogo.jogador, &jogo.mapa); // uma casa para trás, sem virar
-                }
-                else if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT)) {
-                    girar_jogador(&jogo.jogador, false); // 90 graus para a esquerda
-                }
-                else if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT)) {
-                    girar_jogador(&jogo.jogador, true);  // 90 graus para a direita
+                // --- Controles 3D Contínuos ---
+                if (tempoPasso >= INTERVALO_PASSO) {
+                    int seMoveu3D = 0;
+
+                    if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) {
+                        movimentar_jogador(&jogo.jogador, &jogo.mapa, jogo.jogador.direcao);
+                        seMoveu3D = 1;
+                    }
+                    else if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) {
+                        recuar_jogador(&jogo.jogador, &jogo.mapa);
+                        seMoveu3D = 1;
+                    }
+                    else if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) {
+                        girar_jogador(&jogo.jogador, false);
+                        seMoveu3D = 1;
+                    }
+                    else if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
+                        girar_jogador(&jogo.jogador, true);
+                        seMoveu3D = 1;
+                    }
+
+                    if (seMoveu3D) {
+                        tempoPasso = 0.0f;
+                    }
                 }
             }
+
 
             // Daqui para baixo vale para os dois modos: a lógica é a mesma
             coletar_item(&jogo.itens, &jogo.jogador);
@@ -170,12 +212,13 @@ int main(void) {
                 desenharMapa2D(&jogo.mapa, origem, tamanhoCasa);
                 desenharSaida2D(&jogo.mapa, origem, tamanhoCasa, jogo.professor.ajudado); // verde = liberada pelo professor
                 desenhar_item(jogo.itens, origem, tamanhoCasa);
-                desenhar_professor(&jogo.professor, origem, tamanhoCasa);
+                desenhar_professor(&jogo, origem, tamanhoCasa);
                 desenharJogador2D(&jogo, origem, tamanhoCasa);
             } else {
                 // 3D: cena em primeira pessoa ocupando a janela toda e o minimapa no canto
                 desenharCena3D(&jogo);
                 desenharMinimapa(&jogo);
+                desenharNickProfessor3D(&jogo.professor);
             }
 
             // HUD por cima de tudo, na faixa de baixo (nos dois modos)
@@ -194,6 +237,13 @@ int main(void) {
 
     memRelatorio();
     UnloadTexture(jogo.texturaJogador);
+
+    for (int p = 0; p < 3; p++) {
+        for (int pose = 0; pose < 2; pose++) {
+            UnloadTexture(jogo.texturasProfessores[p][pose]);
+        }
+    }
+
     CloseWindow();
     return carregou ? 0 : 1;
 }

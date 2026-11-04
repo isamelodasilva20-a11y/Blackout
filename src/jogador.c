@@ -77,20 +77,17 @@ void recuar_jogador(Jogador *jogador, Mapa *mapa){
 }
 
 
-//desenha o boneco recortando o quadro certo da folha de sprites (4 colunas = passos
-//da caminhada, 3 linhas = cima, baixo e perfil) e esticando para 1,6x a casa
 void desenharJogador2D(Jogo *jogo, Vector2 origem, int tamanhoCasa) {
     if (jogo == NULL || jogo->texturaJogador.id == 0) return;
 
-    //tamanho do boneco na tela: maior que a casa
+    // Tamanho do boneco na tela: 1.6x o tamanho da casa
     float tamanho = (float)tamanhoCasa * ESCALA_SPRITE;
 
-    //converte a posicao da matris pra posição em pikel na imagem
-    //centraliza na horizontal: sobra (tamanho - casa) que é dividida para os dois lados
-    //pés na base da casa: o boneco "cresce" para cima, invadindo a casa de cima
-    float posX = origem.x + (float)(jogo->jogador.posicao.coluna * tamanhoCasa) - (tamanho - (float)tamanhoCasa) / 2.0f;
+    // Calcula o CENTRO exato da casa no mapa
+    float centroX = origem.x + (float)(jogo->jogador.posicao.coluna * tamanhoCasa) + ((float)tamanhoCasa / 2.0f);
     float posY = origem.y + (float)(jogo->jogador.posicao.linha * tamanhoCasa + tamanhoCasa) - tamanho;
-    //tamanho que será cortado na imagem
+
+    // Dimensões do recorte na folha de sprites (4 colunas x 3 linhas)
     float larguraFrame = (float)jogo->texturaJogador.width / 4.0f;
     float alturaFrame  = (float)jogo->texturaJogador.height / 3.0f;
 
@@ -101,10 +98,10 @@ void desenharJogador2D(Jogo *jogo, Vector2 origem, int tamanhoCasa) {
     } else if (jogo->jogador.direcao == DIR_BAIXO) {
         linhaDirecao = 1;
     } else if (jogo->jogador.direcao == DIR_ESQUERDA || jogo->jogador.direcao == DIR_DIREITA) {
-        linhaDirecao = 2; // Linha do perfil
+        linhaDirecao = 2; // Linha do perfil (3ª linha)
     }
 
-    // Se a imagem original aponta para a ESQUERDA:
+    // A imagem original olha para a ESQUERDA:
     // Mantém largura positiva para a ESQUERDA e NEGATIVA para a DIREITA (espelhar)
     float larguraSrc = larguraFrame;
     if (jogo->jogador.direcao == DIR_DIREITA) {
@@ -118,12 +115,16 @@ void desenharJogador2D(Jogo *jogo, Vector2 origem, int tamanhoCasa) {
         .height = alturaFrame
     };
 
-    //sombra oval no chão, embaixo dos pés, para o boneco não parecer "flutuando"
-    DrawEllipse((int)(posX + tamanho / 2.0f), (int)(posY + tamanho - 3),
+    // Sombra oval no chão
+    DrawEllipse((int)centroX, (int)(posY + tamanho - 3),
                 (float)tamanhoCasa * 0.4f, (float)tamanhoCasa * 0.15f, Fade(BLACK, 0.4f));
 
-    Rectangle destRec = { posX, posY, tamanho, tamanho };
-    Vector2 origin = { 0.0f, 0.0f };
+    // Posiciona a destRec centralizada na coluna do jogador
+    Rectangle destRec = { centroX, posY, tamanho, tamanho };
+    
+    // Pivô no centro horizontal do sprite: garante que o espelhamento da Raylib
+    // rode no próprio eixo do boneco sem o fazer sumir ou desalinhar!
+    Vector2 origin = { tamanho / 2.0f, 0.0f };
 
     DrawTexturePro(jogo->texturaJogador, srcRec, destRec, origin, 0.0f, WHITE);
 }

@@ -46,15 +46,21 @@ typedef struct Item {
     struct Item *next;
 } Item;
 
+typedef enum {
+    PROFESSOR_1,
+    PROFESSOR_2,
+    PROFESSOR_3
+}TipoProfessor;
+
 typedef struct {
     Posicao posicao;
     const char *nome;
     const char *pergunta;
     const char *resposta;
+    int id;
+    TipoProfessor tipo;
     bool ajudado;
 }Professor;
-
-
 
 typedef enum {
     ROBO_ALEATORIO,     
@@ -92,10 +98,12 @@ typedef struct {
     Mapa mapa;
     Jogador jogador;
     Texture2D texturaJogador; 
+    Texture2D texturasProfessores[3][2];
     Item *itens;          
     Robo *robos;     
     Professor professor;  
     int andarAtual;
+    Camera3D camera;
     TelaJogo telaAtual;
     EstadoFeedback estadoFeedback;
     double tempoInicioFeedback;

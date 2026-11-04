@@ -25,4 +25,6 @@ void desenharCena3D(Jogo *jogo);
 // Minimapa 2D no canto superior direito da tela.
 void desenharMinimapa(Jogo *jogo);
 
+void desenharNickProfessor3D(Professor *professor);
+
 #endif
