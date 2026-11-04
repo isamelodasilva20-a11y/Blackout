@@ -5,6 +5,9 @@
 #include "hud.h"
 #include "raylib.h"
 
+// Escala para o sprite ficar com a mesma altura visual do jogador 
+#define ESCALA_SPRITE 1.4
+
 typedef struct {
     const char *nome;
     const char *pergunta;
@@ -55,37 +58,40 @@ bool verificar_interacao_professor(Jogador *jogador, Professor *professor) {
     return false;
 }
 
-// desenha a representação visual dos professor
-// origem = canto superior esquerdo do mapa na tela (no minimapa ela muda)
 void desenhar_professor(const Jogo *jogo, Vector2 origem, int tamanhoCasa) {
     if (jogo == NULL || jogo->professor.posicao.linha < 0) return;
 
     const Professor *professor = &jogo->professor;
 
-    // Calcula a posição no mapa 2D
-    float posX = origem.x + (professor->posicao.coluna * tamanhoCasa);
-    float posY = origem.y + (professor->posicao.linha * tamanhoCasa);
+    float tamanho = (float)tamanhoCasa * ESCALA_SPRITE;
 
-    // Seleciona o ID do professor (0, 1 ou 2) e o estado (0 = Normal, 1 = Joinha)
+    // Posição horizontal centralizada na casa
+    float posX = origem.x + (float)(professor->posicao.coluna * tamanhoCasa) + ((float)tamanhoCasa / 2.0f);
+    
+    // Ancoragem perfeita: os pés assentam exatamente na borda inferior da casa
+    float posY = origem.y + (float)(professor->posicao.linha * tamanhoCasa + tamanhoCasa) - tamanho;
+
+    // Seleciona a textura do professor
     int profID = professor->id;
     int poseIndex = professor->ajudado ? 1 : 0;
-
     Texture2D tex = jogo->texturasProfessores[profID][poseIndex];
 
-    // Define onde desenhar o sprite 24x24
-    Rectangle dest = { posX, posY, (float)tamanhoCasa, (float)tamanhoCasa };
     Rectangle src = { 0, 0, (float)tex.width, (float)tex.height };
+    Rectangle dest = { posX, posY, tamanho, tamanho };
+    Vector2 origin = { tamanho / 2.0f, 0.0f };
 
-    // Desenha o sprite em Pixel Art
-    DrawTexturePro(tex, src, dest, (Vector2){0, 0}, 0.0f, WHITE);
+    // Sombra oval no chão (alinhada aos pés na base da casa)
+    DrawEllipse((int)posX, (int)(origem.y + (float)(professor->posicao.linha * tamanhoCasa + tamanhoCasa) - 3.0f),
+                (float)tamanhoCasa * 0.45f, (float)tamanhoCasa * 0.15f, Fade(BLACK, 0.4f));
 
-    // Se ainda não foi ajudado, desenha o '!' amarelo em cima da cabeça
+    // Desenha o sprite
+    DrawTexturePro(tex, src, dest, origin, 0.0f, WHITE);
+
+    // Ícone '!' ajustado acima da cabeça
     if (!professor->ajudado && tamanhoCasa >= 12) {
-        int centroX = (int)posX + (tamanhoCasa / 2);
-        DrawText("!", centroX - 2, (int)posY - 10, 10, YELLOW);
+        DrawText("!", (int)posX - 3, (int)posY - 12, 14, YELLOW);
     }
 }
-
 
 // converte uma medida do tamanho base da janela (1024x640) para a janela atual
 static int escalar(int valorBase, float escala) {

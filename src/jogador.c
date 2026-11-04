@@ -84,7 +84,7 @@ void desenharJogador2D(Jogo *jogo, Vector2 origem, int tamanhoCasa) {
     float tamanho = (float)tamanhoCasa * ESCALA_SPRITE;
 
     // Calcula o CENTRO exato da casa no mapa
-    float centroX = origem.x + (float)(jogo->jogador.posicao.coluna * tamanhoCasa) + ((float)tamanhoCasa / 2.0f);
+    float posX = origem.x + (float)(jogo->jogador.posicao.coluna * tamanhoCasa) + ((float)tamanhoCasa / 2.0f);
     float posY = origem.y + (float)(jogo->jogador.posicao.linha * tamanhoCasa + tamanhoCasa) - tamanho;
 
     // Dimensões do recorte na folha de sprites (4 colunas x 3 linhas)
@@ -116,11 +116,11 @@ void desenharJogador2D(Jogo *jogo, Vector2 origem, int tamanhoCasa) {
     };
 
     // Sombra oval no chão
-    DrawEllipse((int)centroX, (int)(posY + tamanho - 3),
+    DrawEllipse((int)posX, (int)(posY + tamanho - 3),
                 (float)tamanhoCasa * 0.4f, (float)tamanhoCasa * 0.15f, Fade(BLACK, 0.4f));
 
     // Posiciona a destRec centralizada na coluna do jogador
-    Rectangle destRec = { centroX, posY, tamanho, tamanho };
+    Rectangle destRec = { posX, posY, tamanho, tamanho };
     
     // Pivô no centro horizontal do sprite: garante que o espelhamento da Raylib
     // rode no próprio eixo do boneco sem o fazer sumir ou desalinhar!
