@@ -75,7 +75,7 @@ int main(void) {
     float acumuladorTempo = 0.0f;
     float tempoInativo = 0.0f;
     float tempoPasso = 0.0f; // Temporizador para controlar a velocidade do movimento contínuo
-    const float INTERVALO_PASSO = 0.15f; // Intervalo de 0.15s entre cada passo ao segurar a tecla
+    const float INTERVALO_PASSO = 0.20f; // Intervalo de 0.20s entre cada passo ao segurar a tecla
     int venceu = 0;
 
     // Temporizador dos robôs

@@ -76,14 +76,13 @@ void recuar_jogador(Jogador *jogador, Mapa *mapa){
     jogador->direcao = frente;
 }
 
-
 void desenharJogador2D(Jogo *jogo, Vector2 origem, int tamanhoCasa) {
     if (jogo == NULL || jogo->texturaJogador.id == 0) return;
 
     // Tamanho do boneco na tela: 1.6x o tamanho da casa
     float tamanho = (float)tamanhoCasa * ESCALA_SPRITE;
 
-    // Calcula o CENTRO exato da casa no mapa
+    // Calcula o CENTRO base da casa no mapa
     float posX = origem.x + (float)(jogo->jogador.posicao.coluna * tamanhoCasa) + ((float)tamanhoCasa / 2.0f);
     float posY = origem.y + (float)(jogo->jogador.posicao.linha * tamanhoCasa + tamanhoCasa) - tamanho;
 
@@ -98,36 +97,54 @@ void desenharJogador2D(Jogo *jogo, Vector2 origem, int tamanhoCasa) {
     } else if (jogo->jogador.direcao == DIR_BAIXO) {
         linhaDirecao = 1;
     } else if (jogo->jogador.direcao == DIR_ESQUERDA || jogo->jogador.direcao == DIR_DIREITA) {
-        linhaDirecao = 2; // Linha do perfil (3ª linha)
+        linhaDirecao = 2; // Perfil
     }
 
-    // A imagem original olha para a ESQUERDA:
-    // Mantém largura positiva para a ESQUERDA e NEGATIVA para a DIREITA (espelhar)
-    float larguraSrc = larguraFrame;
+    // PADDING: Margem de 2px
+    float padding = 2.0f;
+    float xInicial = (float)(jogo->jogador.frame % 4) * larguraFrame + padding;
+    float larguraSrc = larguraFrame - (padding * 2.0f);
+
+    // Se estiver a olhar para a DIREITA, inverte a largura para espelhar
     if (jogo->jogador.direcao == DIR_DIREITA) {
-        larguraSrc = -larguraFrame;
+        larguraSrc = -larguraSrc;
     }
 
     Rectangle srcRec = {
-        .x = (float)(jogo->jogador.frame % 4) * larguraFrame,
+        .x = xInicial,
         .y = (float)linhaDirecao * alturaFrame,
         .width = larguraSrc,
         .height = alturaFrame
     };
 
-    // Sombra oval no chão
+    // SOMBRA: Mantida perfeitamente centralizada na casa
     DrawEllipse((int)posX, (int)(posY + tamanho - 3),
-                (float)tamanhoCasa * 0.4f, (float)tamanhoCasa * 0.15f, Fade(BLACK, 0.4f));
+                (float)tamanhoCasa * 0.35f, (float)tamanhoCasa * 0.15f, Fade(BLACK, 0.4f));
 
-    // Posiciona a destRec centralizada na coluna do jogador
-    Rectangle destRec = { posX, posY, tamanho, tamanho };
+    // AJUSTE DE CENTRALIZAÇÃO DO CORPO POR DIREÇÃO:
+    float offsetX = 0.0f;
+
+    if (jogo->jogador.direcao == DIR_BAIXO || jogo->jogador.direcao == DIR_CIMA) {
+        // De frente ou de costas: a lanterna fica à direita, empurrando o corpo para a esquerda.
+        // Empurramos o sprite ligeiramente para a DIREITA (~10% do tamanho) para alinhar os pés na sombra.
+        offsetX = tamanho * 0.10f;
+    } else if (jogo->jogador.direcao == DIR_ESQUERDA) {
+        // Olhando para a ESQUERDA: empurra para a direita
+        offsetX = tamanho * 0.15f;
+    } else if (jogo->jogador.direcao == DIR_DIREITA) {
+        // Olhando para a DIREITA: empurra para a esquerda
+        offsetX = -tamanho * 0.15f;
+    }
+
+    // Posiciona o retângulo de destino com a compensação no eixo X
+    Rectangle destRec = { posX + offsetX, posY, tamanho, tamanho };
     
-    // Pivô no centro horizontal do sprite: garante que o espelhamento da Raylib
-    // rode no próprio eixo do boneco sem o fazer sumir ou desalinhar!
+    // Pivô no centro horizontal do sprite
     Vector2 origin = { tamanho / 2.0f, 0.0f };
 
     DrawTexturePro(jogo->texturaJogador, srcRec, destRec, origin, 0.0f, WHITE);
 }
+
 
 //seta amarela apontando para a direção do jogador (minimapa do modo 3D,
 //onde o sprite ficaria pequeno demais para enxergar)
