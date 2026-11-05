@@ -35,28 +35,30 @@
 
 #define TOTAL_ANDARES 3 // quantos arquivos andarN.txt o jogo percorre ate a vitoria
 
+
+
 // Funcoes de desenho 2D: origem = canto superior esquerdo do mapa na tela, em
 // pixels. Assim o mesmo codigo desenha o mapa grande (origem 0,0 e casas de
 // 24px) e o minimapa do modo 3D (canto da tela e casas pequenas).
-void desenharMapa2D(Mapa *mapa, Vector2 origem, int tamanhoCasa);
+void desenharMapa2D(struct Mapa *mapa, Vector2 origem, int tamanhoCasa);
 
 // liberada = true quando o professor ja foi ajudado (escada verde)
-void desenharSaida2D(Mapa *mapa, Vector2 origem, int tamanhoCasa, bool liberada);
+void desenharSaida2D(struct Mapa *mapa, Vector2 origem, int tamanhoCasa, bool liberada);
 
 // true se o jogador NAO pode entrar na casa: fora do mapa, parede ou movel
-bool mapaCasaBloqueada(Mapa *mapa, int linha, int coluna);
+bool mapaCasaBloqueada(struct Mapa *mapa, int linha, int coluna);
 
 // Le um arquivo de mapa para dentro de jogo->mapa. Tambem posiciona o jogador
 // (P) e o professor (F), guarda a escada (S) e cria as baterias (I) na lista
 // jogo->itens. Retorna 1 se deu certo e 0 se deu erro.
-int  mapaCarregar(Jogo *jogo, const char *arquivo);
+int  mapaCarregar(struct  Jogo *jogo, const char *arquivo);
 
 // Troca para o andar indicado (1 a TOTAL_ANDARES): libera o mapa e os itens
 // do andar atual, carrega andares/andarN.txt e reinicia o professor (nova
 // pergunta, ainda nao ajudado) e o pendrive do jogador. Retorna 1 se deu certo.
-int  mapaCarregarAndar(Jogo *jogo, int andar);
+int  mapaCarregarAndar(struct Jogo *jogo, int andar);
 
 // Devolve para o sistema toda a memoria da matriz do mapa.
-void mapaLiberar(Mapa *mapa);
+void mapaLiberar(struct Mapa *mapa);
 
 #endif

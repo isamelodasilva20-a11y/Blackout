@@ -1,7 +1,9 @@
+#include <stdlib.h>
+#include <stddef.h>
 #include "raylib.h"
-#include "itens.h"
-#include "memoria.h"
-
+#include "jogo.h"       // 1. jogo.h define Posicao, TipoItem, Item
+#include "memoria.h"    // 2. OBRIGATÓRIO: Traz as funções memAlocar e memLiberar
+#include "itens.h"      // 3. Protótipos dos itens
 
 //aloca a memória dos itens necessários no inicio do jogo
 void adicionar_item(Item **itens, Posicao posicao, TipoItem tipo){

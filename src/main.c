@@ -60,9 +60,9 @@ int main(void) {
     }
 
     // --- CARREGAMENTO DOS ROBÔS ---
-    jogo.texRoboInterceptador = LoadTexture("imagens/robo_laranja.png");
-    jogo.texRoboAleatorio = LoadTexture("imagens/robo_roxo.png");
-    jogo.texRoboPerseguidor = LoadTexture("imagens/robo_vermelho.png");
+    jogo.texRoboInterceptador[0] = LoadTexture("imagens/robo_laranja.png");
+    jogo.texRoboTemporizador[0] = LoadTexture("imagens/robo_roxo.png");
+    jogo.texRoboPerseguidor[0] = LoadTexture("imagens/robo_vermelho.png");
 
 
     jogo.jogador.vidas = VIDAS_INICIAIS; // as vidas valem para a partida toda, nao por andar
@@ -78,9 +78,6 @@ int main(void) {
     const float INTERVALO_PASSO = 0.20f; // Intervalo de 0.20s entre cada passo ao segurar a tecla
     int venceu = 0;
 
-    // Temporizador dos robôs
-    float tempoRobos = 0.0f;
-    const float INTERVALO_ROBOS = 0.4f; // A cada 0.4s eles dão um passo
 
     while (carregou && !WindowShouldClose()) {
         // --- F11 alterna tela cheia (sem borda, na resolucao do monitor) ---
@@ -109,15 +106,12 @@ int main(void) {
             jogo.telaAtual = TELA_QUIZ;
         }
 
-                if (!venceu && jogo.telaAtual == TELA_NORMAL) {
+        if (!venceu && jogo.telaAtual == TELA_NORMAL) {
             tempoPasso += GetFrameTime();
 
-            tempoRobos += GetFrameTime();
-            if (tempoRobos >= INTERVALO_ROBOS) {
-                tempoRobos = 0.0f;
-                robosAtualizar(&jogo);
-            }
-
+            // Atualizacao continua e fluida de todos os robos (estilo Pac-Man)
+            robosAtualizarContinuo(&jogo, GetFrameTime());
+         
             if (jogo.modoVisao == 0) {
                 // --- Controles 2D Contínuos (na main.c) ---
                 int tentandoMover = (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP) ||

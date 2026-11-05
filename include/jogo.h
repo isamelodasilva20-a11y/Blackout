@@ -10,12 +10,12 @@ typedef enum {
     DIR_DIREITA
 } Direcao;
 
-typedef struct {
+typedef struct Posicao {
     int linha;
     int coluna;
 } Posicao;
 
-typedef struct {
+typedef struct Mapa {
     int linhas;
     int colunas;
     char **matriz;     // matriz[linha][coluna]: '#' parede, '.' corredor, ' ' sala, 'M' mesa, 'C' computador (legenda em mapa.h)
@@ -24,7 +24,7 @@ typedef struct {
 
 #define VIDAS_INICIAIS 3 // vidas no comeco da partida (coracoes do HUD)
 
-typedef struct {
+typedef struct Jogador{
     Posicao posicao;          
     Posicao posicaoInicial;   
     Direcao direcao;           
@@ -63,7 +63,7 @@ typedef struct {
 }Professor;
 
 typedef enum {
-    ROBO_ALEATORIO,     
+    ROBO_TEMPORIZADOR,     
     ROBO_PERSEGUIDOR,   
     ROBO_INTERCEPTADOR  
 } TipoRobo;
@@ -79,15 +79,19 @@ typedef struct Robo {
     Posicao posicaoInicial;
     TipoRobo tipo;
     EstadoRobo estado;
+
     Vector2 posicaoReal;    // Posição fluida na tela (float)
     Vector2 direcao;        // Direção do movimento ex: {1, 0}
     float velocidade;       //velocidade do robo
+    
     struct Robo *next;
 } Robo;
 
 typedef enum {
     TELA_NORMAL,
-    TELA_QUIZ
+    TELA_QUIZ,
+    TELA_GAME_OVER,
+    TELA_VITORIA
 } TelaJogo;
 
 typedef enum {
@@ -97,14 +101,14 @@ typedef enum {
 } EstadoFeedback;
 
 // --- 7. ESTADO GERAL DO JOGO ---
-typedef struct {
+typedef struct Jogo{
     Mapa mapa;
     Jogador jogador;
     Texture2D texturaJogador; 
     Texture2D texturasProfessores[3][2];
-    Texture2D texRoboInterceptador;
-    Texture2D texRoboAleatorio;
-    Texture2D texRoboPerseguidor;
+    Texture2D texRoboInterceptador[4];
+    Texture2D texRoboTemporizador[4];
+    Texture2D texRoboPerseguidor[4];
     Item *itens;          
     Robo *robos;     
     Professor professor;  

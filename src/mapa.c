@@ -1,14 +1,17 @@
 #include <stdio.h>
+#include <stddef.h>
+#include "raylib.h"
+
+// 1. OBRIGATÓRIO: jogo.h vem PRIMEIRO porque define as structs base
+#include "jogo.h"
+
+// 2. Depois os restantes ficheiros de cabeçalho do projeto
 #include "mapa.h"
 #include "memoria.h"
 #include "itens.h"
 #include "professor.h"
 
-#define TAM_BUFFER 256 // tamanho maximo de uma linha lida do arquivo
-
-#include <stddef.h>
-#include "raylib.h"
-#include "jogo.h"
+#define TAM_BUFFER 256
 
 // Abaixo desse tamanho de casa (o minimapa do modo 3D) os detalhes nao
 // aparecem direito, entao desenhamos so as cores basicas

@@ -1,8 +1,11 @@
+#include <stdio.h>
 #include <stddef.h>
 #include "raylib.h"
+#include "jogo.h"     // 1. jogo.h primeiro
 #include "hud.h"
+#include "itens.h"    // 2. itens.h
 #include "mapa.h"
-#include "itens.h"
+#include "professor.h"
 
 // Cores do HUD
 #define COR_HUD_FUNDO   (Color){  10,  12,  20, 220 }
