@@ -1,7 +1,7 @@
 #ifndef MAPA_H
 #define MAPA_H
 
-#include "jogo.h"
+#include "estrutura.h"
 
 /*
  * Formato dos arquivos andares/andarN.txt

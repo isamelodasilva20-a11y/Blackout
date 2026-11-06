@@ -2,7 +2,7 @@
 #define ITENS_H
 
 #include "raylib.h"
-#include "jogo.h"
+#include "estrutura.h"
 
 void adicionar_item(Item **item, Posicao posicao, TipoItem tipo);
 void coletar_item(Item **item, Jogador *jogador);

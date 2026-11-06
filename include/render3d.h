@@ -1,7 +1,7 @@
 #ifndef RENDER3D_H
 #define RENDER3D_H
 
-#include "jogo.h"
+#include "estrutura.h"
 
 /*
  * Visao 3D em primeira pessoa (jogo.modoVisao == 1).

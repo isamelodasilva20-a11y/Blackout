@@ -8,6 +8,7 @@
 #include "render3d.h"
 #include "hud.h"
 #include "robos.h"
+#include "estrutura.h"
 
 int main(void) {
     // Janela redimensionavel: o jogador pode arrastar a borda ou maximizar,

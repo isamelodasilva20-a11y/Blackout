@@ -2,7 +2,7 @@
 #define ROBOS_H
 
 #include "raylib.h"
-#include "jogo.h"
+#include "estrutura.h"
 
 // Protótipos das funções de robôs
 void robosAdicionar(Robo **cabeca, Posicao posicao, TipoRobo tipo, int andar);
