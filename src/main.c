@@ -60,10 +60,8 @@ int main(void) {
     }
 
     // --- CARREGAMENTO DOS ROBÔS ---
-    jogo.texRoboInterceptador[0] = LoadTexture("imagens/robo_laranja.png");
-    jogo.texRoboTemporizador[0] = LoadTexture("imagens/robo_roxo.png");
-    jogo.texRoboPerseguidor[0] = LoadTexture("imagens/robo_vermelho.png");
-
+    // --- CARREGAMENTO DOS ROBÔS E RECURSOS DO JOGO ---
+    jogoCarregar(&jogo);
 
     jogo.jogador.vidas = VIDAS_INICIAIS; // as vidas valem para a partida toda, nao por andar
 
@@ -229,6 +227,7 @@ int main(void) {
                 desenharSaida2D(&jogo.mapa, origem, tamanhoCasa, jogo.professor.ajudado); // verde = liberada pelo professor
                 desenhar_item(jogo.itens, origem, tamanhoCasa);
                 desenhar_professor(&jogo, origem, tamanhoCasa);
+                desenharRobos(&jogo, origem, tamanhoCasa);
                 desenharJogador2D(&jogo, origem, tamanhoCasa);
             } else {
                 // 3D: cena em primeira pessoa ocupando a janela toda e o minimapa no canto

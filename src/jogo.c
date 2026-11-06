@@ -4,7 +4,7 @@
 #include "raylib.h"
 #include "jogo.h"
 
-void checarColisoes(Jogo *jogo);
+
 // 1. Inicializa e carrega as texturas das 4 direções de cada robô
 void jogoCarregar(Jogo *jogo) {
     if (jogo == NULL) return;
@@ -53,7 +53,7 @@ void jogoCarregarMapaRobos(Jogo *jogo, char mapaTexto[100][100], int linhas, int
 void jogoTick(Jogo *jogo) {
     if (jogo == NULL) return;
 
-    checarColisoes(jogo);
+    checarVitoriaDerrotaRoboRoxo(jogo);
 }
 
 // 4. Descarregar as texturas da memória ao fechar o jogo
