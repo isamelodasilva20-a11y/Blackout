@@ -21,8 +21,6 @@
  *   I   bateria (item coletavel)
  *   F   professor do andar (quem libera a escada depois do quiz)
  *   R X Z  robos (reservados para a parte dos robos; por enquanto viram piso)
- *   L   lanterna (ignorada, a lanterna agora e fixa)
- *
  * As letras de objetos (P, S, I, F, R, X, Z, L) viram piso na matriz: o tipo
  * de piso (corredor ou sala) e copiado da casa a esquerda.
  *

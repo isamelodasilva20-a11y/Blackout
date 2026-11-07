@@ -16,19 +16,60 @@ void adicionar_item(Item **itens, Posicao posicao, TipoItem tipo){
 
 //desenha a representação visual dos itens
 //origem = canto superior esquerdo do mapa na tela (no minimapa ela muda)
-void desenhar_item(Item *itens, Vector2 origem, int tamanhoCasa){
-    Item *atual = itens;
-    while(atual!=NULL){
-        //pega a loc atribuida ao item para desenhar no local certo
-        int eixo_x = (int)origem.x + (atual->posicao.coluna * tamanhoCasa) + (tamanhoCasa / 2);
-        int eixo_y = (int)origem.y + (atual->posicao.linha * tamanhoCasa) + (tamanhoCasa / 2);
+void desenhar_item(Jogo *jogo, Vector2 origem, int tamanhoCasa) {
+    if (jogo == NULL) return;
 
-        //usa a funcao do raylib pra desenhar, inicialmente um cículo azul
-        DrawCircle(eixo_x, eixo_y, (float)tamanhoCasa / 4.0f, BLUE);
-        //vai pro proximo item até chegar em NULL
+    Item *atual = jogo->itens;
+    while (atual != NULL) {
+        // Converte a posição do item no mapa para pixels na tela
+        int posX = (int)origem.x + (atual->posicao.coluna * tamanhoCasa);
+        int posY = (int)origem.y + (atual->posicao.linha * tamanhoCasa);
+
+        if (atual->tipo == ITEM_BATERIA && jogo->texturaItem.id > 0) {
+            // Recorte da textura original da bateria
+            Rectangle src = { 0.0f, 0.0f, (float)jogo->texturaItem.width, (float)jogo->texturaItem.height };
+            // Destino na tela (ajustado exatamente para o tamanho do quadrado da casa)
+            Rectangle dest = { (float)posX, (float)posY, (float)tamanhoCasa*2, (float)tamanhoCasa };
+            
+            DrawTexturePro(jogo->texturaItem, src, dest, (Vector2){ 0.0f, 0.0f }, 0.0f, WHITE);
+        } else {
+            // Fallback em círculo caso a imagem falhe
+            int centroX = posX + (tamanhoCasa / 2);
+            int centroY = posY + (tamanhoCasa / 2);
+            DrawCircle(centroX, centroY, (float)tamanhoCasa / 4.0f, BLUE);
+        }
+
         atual = atual->next;
     }
 }
+
+#include <math.h>
+
+void desenhar_item_3d(Jogo *jogo, Camera3D camera) {
+    if (jogo == NULL || jogo->itens == NULL) return;
+
+    float tempo = (float)GetTime();
+    Item *atual = jogo->itens;
+
+    while (atual != NULL) {
+        if (atual->tipo == ITEM_BATERIA && jogo->texturaItem.id > 0) {
+            float cx = (float)atual->posicao.coluna + 0.5f;
+            float cz = (float)atual->posicao.linha + 0.5f;
+
+            // Altura onde a pilha flutua no 3D
+            float alturaY = 0.35f + 0.05f * sinf(tempo * 3.0f + cx);
+            Vector3 posicaoItem = { cx, alturaY, cz };
+
+            Rectangle recTextura = { 0.0f, 0.0f, (float)jogo->texturaItem.width, (float)jogo->texturaItem.height };
+
+            // Desenha a imagem 2D da bateria virada para a câmera 3D
+            DrawBillboardRec(camera, jogo->texturaItem, recTextura, posicaoItem, (Vector2){ 0.5f, 0.5f }, WHITE);
+        }
+
+        atual = atual->next;
+    }
+}
+
 
 //verificar a coleta do item pelo jogador
 void coletar_item(Item **itens, Jogador *jogador){

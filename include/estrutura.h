@@ -109,6 +109,7 @@ typedef struct Jogo{
     Texture2D texRoboInterceptador[4];
     Texture2D texRoboTemporizador[4];
     Texture2D texRoboPerseguidor[4];
+    Texture2D texturaItem;
     Item *itens;          
     Robo *robos;     
     Professor professor;  

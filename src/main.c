@@ -52,6 +52,7 @@ int main(void) {
     jogo.texturasProfessores[PROFESSOR_3][0] = LoadTexture("imagens/professor_3_normal.png");
     jogo.texturasProfessores[PROFESSOR_3][1] = LoadTexture("imagens/professor_3_joinha.png");
 
+    jogo.texturaItem = LoadTexture("imagens/bateria.png");
 
     // Aplica o filtro Point em todas as texturas para manter o visual Pixel Art nítido (24x24)
     for (int p = 0; p < 3; p++) {
@@ -226,7 +227,7 @@ int main(void) {
                 hudLayoutMapa(&jogo.mapa, &origem, &tamanhoCasa);
                 desenharMapa2D(&jogo.mapa, origem, tamanhoCasa);
                 desenharSaida2D(&jogo.mapa, origem, tamanhoCasa, jogo.professor.ajudado); // verde = liberada pelo professor
-                desenhar_item(jogo.itens, origem, tamanhoCasa);
+                desenhar_item(&jogo, origem, tamanhoCasa);
                 desenhar_professor(&jogo, origem, tamanhoCasa);
                 desenharRobos(&jogo, origem, tamanhoCasa);
                 desenharJogador2D(&jogo, origem, tamanhoCasa);

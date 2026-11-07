@@ -227,7 +227,7 @@ static void desenharPisoTeto3D(int i, int j, bool corredor) {
     desenharRetanguloDeitado(x0, z0, x1, z1, ALTURA_PAREDE, false, COR_TETO_3D);
 }
 
-// ---- Objetos: moveis, escada, professor e baterias -------------------------
+// ---- Objetos: moveis, escada, professor ------------------------------------
 // Cada objeto e pequeno, entao usa uma luz so (a do centro da casa).
 
 // Cubo com a cor escurecida e as arestas marcadas com uma cor mais escura
@@ -354,29 +354,6 @@ void desenharNickProfessor3D(Professor *professor) {
     }
 }
 
-// Baterias: pilha azul flutuando e pulsando, com um brilho transparente em volta
-static void desenharBaterias3D(Item *itens) {
-    float tempo = (float)GetTime();
-    // sin() faz o valor ir e voltar: o brilho de todas as baterias pulsa junto
-    float pulso = 0.5f + 0.5f * sinf(tempo * 4.0f);
-
-    for (Item *atual = itens; atual != NULL; atual = atual->next) {
-        float cx = centro(atual->posicao.coluna);
-        float cz = centro(atual->posicao.linha);
-        float luz = luzEm(cx, cz);
-        if (luz <= 0.0f) continue;
-
-        // Brilham: mesmo longe nunca ficam mais escuras que 55%
-        float brilho = fmaxf(luz, 0.55f);
-        // Sobe e desce; somar a coluna faz cada bateria balancar num ritmo diferente
-        float y = 0.22f + 0.04f * sinf(tempo * 3.0f + (float)atual->posicao.coluna);
-
-        DrawCylinder((Vector3){ cx, y - 0.11f, cz }, 0.07f, 0.07f, 0.22f, 12, escalarCor(COR_BATERIA_3D, brilho)); // corpo
-        DrawCylinder((Vector3){ cx, y + 0.11f, cz }, 0.03f, 0.03f, 0.04f, 8, escalarCor(LIGHTGRAY, brilho));      // polo +
-        DrawSphere((Vector3){ cx, y, cz }, 0.2f + 0.04f * pulso, Fade(SKYBLUE, (0.12f + 0.12f * pulso) * brilho)); // brilho
-    }
-}
-
 // ---- Cena completa ---------------------------------------------------------
 
 // Desenha uma casa do mapa: parede, ou piso/teto com o movel que estiver nela
@@ -433,8 +410,9 @@ void desenharCena3D(Jogo *jogo) {
 
         desenharEscada3D(mapa, jogo->professor.ajudado);
         desenharProfessor3D(&jogo->professor, jogo->texturasProfessores, camera);
-        // Baterias por ultimo: o brilho e transparente e precisa do resto ja desenhado atras dele
-        desenharBaterias3D(jogo->itens);
+        
+        // Desenha as baterias em 3D centralizadas via itens.c utilizando a imagem 2D
+        desenhar_item_3d(jogo, camera);
 
     EndMode3D();
 }
@@ -461,7 +439,7 @@ void desenharMinimapa(Jogo *jogo) {
     // As mesmas funcoes do modo 2D, so que com outra origem e casas pequenas
     desenharMapa2D(&jogo->mapa, origem, t);
     desenharSaida2D(&jogo->mapa, origem, t, jogo->professor.ajudado);
-    desenhar_item(jogo->itens, origem, t);
+    desenhar_item(jogo, origem, t);
     desenhar_professor(jogo, origem, t);
     desenharSetaJogador2D(&jogo->jogador, origem, t);
 }
