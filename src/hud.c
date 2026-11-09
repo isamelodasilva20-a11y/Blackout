@@ -189,7 +189,7 @@ void desenharHUD(Jogo *jogo) {
         objetivo = "Professor ajudado! Vá até a escada verde para subir";
         corObjetivo = GREEN;
     } else {
-        objetivo = "Último andar liberado! Suba a escada para concluir o backup";
+        objetivo = "A ESCADA PARA O ÚLTIMO";
         corObjetivo = GREEN;
     }
     DrawText(objetivo, (int)margem, linha2, fontePequena, corObjetivo);
@@ -218,7 +218,7 @@ void desenharTelaVitoria(Jogo *jogo) {
     int meio = GetScreenHeight() / 2;
 
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.75f));
-    textoCentralizado("BACKUP CONCLUÍDO! TODOS OS ANDARES CONCLUÍDOS!", meio - (int)(60 * escala), fonteEscalada(30, escala), GREEN);
+    textoCentralizado("BACKUP CONCLUÍDO! TODOS OS PENDRIVES FORAM COLETADOS!", meio - (int)(60 * escala), fonteEscalada(30, escala), GREEN);
     textoCentralizado(TextFormat("Tempo total: %s", formatarTempo(jogo->tempoJogo)), meio - (int)(10 * escala), fonteEscalada(24, escala), WHITE);
     textoCentralizado("Pressione ESC para sair", meio + (int)(35 * escala), fonteEscalada(20, escala), LIGHTGRAY);
 }

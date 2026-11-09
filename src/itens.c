@@ -57,13 +57,13 @@ void desenhar_item_3d(Jogo *jogo, Camera3D camera) {
             float cz = (float)atual->posicao.linha + 0.5f;
 
             // Altura onde a pilha flutua no 3D
-            float alturaY = 0.35f + 0.05f * sinf(tempo * 3.0f + cx);
+            float alturaY = 0.30f + 0.05f * sinf(tempo * 3.0f + cx);
             Vector3 posicaoItem = { cx, alturaY, cz };
 
             Rectangle recTextura = { 0.0f, 0.0f, (float)jogo->texturaItem.width, (float)jogo->texturaItem.height };
 
             // Desenha a imagem 2D da bateria virada para a câmera 3D
-            DrawBillboardRec(camera, jogo->texturaItem, recTextura, posicaoItem, (Vector2){ 0.5f, 0.5f }, WHITE);
+            DrawBillboardRec(camera, jogo->texturaItem, recTextura, posicaoItem, (Vector2){ 1.0f, 0.5f }, WHITE);
         }
 
         atual = atual->next;
