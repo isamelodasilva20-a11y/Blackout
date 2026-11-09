@@ -111,6 +111,7 @@ int main(void) {
 
             // Atualizacao continua e fluida de todos os robos (estilo Pac-Man)
             robosAtualizarContinuo(&jogo, GetFrameTime());
+            checarVitoriaDerrotaRobos(&jogo);
          
             if (jogo.modoVisao == 0) {
                 // --- Controles 2D Contínuos (na main.c) ---

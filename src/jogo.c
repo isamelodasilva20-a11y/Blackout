@@ -53,7 +53,7 @@ void jogoCarregarMapaRobos(Jogo *jogo, char mapaTexto[100][100], int linhas, int
 void jogoTick(Jogo *jogo) {
     if (jogo == NULL) return;
 
-    checarVitoriaDerrotaRoboRoxo(jogo);
+    checarVitoriaDerrotaRobos(jogo);
 }
 
 // 4. Descarregar as texturas da memória ao fechar o jogo
