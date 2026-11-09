@@ -1,9 +1,11 @@
+#include "robos.h"
 #include <stdio.h>
 #include <stddef.h>
 #include "raylib.h"
 
 // 1. OBRIGATÓRIO: jogo.h vem PRIMEIRO porque define as structs base
 #include "jogo.h"
+
 
 // 2. Depois os restantes ficheiros de cabeçalho do projeto
 #include "mapa.h"
@@ -276,9 +278,18 @@ int mapaCarregar(Jogo *jogo, const char *arquivo) {
                     jogo->professor.posicao = (Posicao){ .linha = i, .coluna = j };
                     mapa->matriz[i][j] = piso;
                     break;
-                case 'R': // robos: reservados para a parte dos robos,
-                case 'X': // que vai ler essas letras aqui. Por enquanto
-                case 'Z': // viram piso.
+               case 'R': // Robo Temporizador (Roxo)
+                    robosAdicionar(&jogo->robos, (Posicao){ .linha = i, .coluna = j }, ROBO_TEMPORIZADOR, jogo->andarAtual);
+                    mapa->matriz[i][j] = piso;
+                    break;
+                case 'X': // Robo Perseguidor (Vermelho)
+                    robosAdicionar(&jogo->robos, (Posicao){ .linha = i, .coluna = j }, ROBO_PERSEGUIDOR, jogo->andarAtual);
+                    mapa->matriz[i][j] = piso;
+                    break;
+                case 'Z': // Robo Interceptador (Laranja)
+                    robosAdicionar(&jogo->robos, (Posicao){ .linha = i, .coluna = j }, ROBO_INTERCEPTADOR, jogo->andarAtual);
+                    mapa->matriz[i][j] = piso;
+                    break;
                 case 'L': // lanterna agora e fixa, nao vira item
                     mapa->matriz[i][j] = piso;
                     break;

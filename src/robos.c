@@ -5,28 +5,39 @@
 #include "jogo.h"
 #include "robos.h"
 
+// Converte o Vector2 de direção no índice da imagem (0: Frente, 1: Costas, 2: Lado)
+int obterIndiceDirecaoRobo(Vector2 direcao) {
+    if (direcao.y < 0) return 1;  // Cima (Costas)
+    if (direcao.x != 0) return 2; // Esquerda / Direita (Lado)
+    return 0;                     // Baixo (Frente)
+}
+
 void robosAdicionar(Robo **cabeca, Posicao posicao, TipoRobo tipo, int andar) {
-    Robo *novo = (Robo *)malloc(sizeof(Robo));
-    if (novo == NULL) return;
+    (void)andar;
+
+    Robo *novo = (Robo*)malloc(sizeof(Robo));
+    if (!novo) return;
 
     novo->posicao = posicao;
-    novo->posicaoInicial = posicao;
+    novo->posicaoReal.x = (float)posicao.coluna;
+    novo->posicaoReal.y = (float)posicao.linha;
     novo->tipo = tipo;
-    novo->estado = ESTADO_NORMAL;
-    novo->posicaoReal = (Vector2){ (float)posicao.coluna, (float)posicao.linha };
-    novo->direcao = (Vector2){ 0.0f, 0.0f };
-
-    // Dificuldade progressiva pelos 3 andares (1.0x, 1.25x, 1.50x)
-    float multiplicadorAndar = 1.0f + ((andar - 1) * 0.25f);
-
-    if (tipo == ROBO_TEMPORIZADOR) {
-        novo->velocidade = 1.2f * multiplicadorAndar;
-    } else {
-        novo->velocidade = 2.5f * multiplicadorAndar;
-    }
-
+    novo->direcao = (Vector2){ 0.0f, 1.0f };
+    
     novo->next = *cabeca;
     *cabeca = novo;
+}
+
+void robosLiberar(Robo **cabeca) {
+    if (cabeca == NULL) return;
+    
+    Robo *atual = *cabeca;
+    while (atual != NULL) {
+        Robo *temp = atual;
+        atual = atual->next;
+        free(temp);
+    }
+    *cabeca = NULL;
 }
 
 void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
@@ -39,7 +50,6 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
             Posicao alvo;
 
             if (atual->tipo == ROBO_INTERCEPTADOR) {
-                // LARANJA: Antecipa 2 casas à frente da direção do jogador
                 alvo = jogo->jogador.posicao;
                 switch (jogo->jogador.direcao) {
                     case DIR_CIMA:     alvo.linha -= 2; break;
@@ -48,10 +58,8 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
                     case DIR_DIREITA:  alvo.coluna += 2; break;
                 }
             } else if (atual->tipo == ROBO_PERSEGUIDOR) {
-                // VERMELHO: Persegue a posição atual do jogador
                 alvo = jogo->jogador.posicao;
             } else if (atual->tipo == ROBO_TEMPORIZADOR) {
-                // ROXO: Anda em direção à posição exata do PROFESSOR
                 alvo = jogo->professor.posicao;
             }
 
@@ -65,7 +73,6 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
                 atual->posicaoReal.y += atual->direcao.y * passo;
             }
 
-            // Atualiza a casa da grelha lógica para colisões
             atual->posicao.coluna = (int)(atual->posicaoReal.x + 0.5f);
             atual->posicao.linha  = (int)(atual->posicaoReal.y + 0.5f);
         }
@@ -73,42 +80,38 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
     }
 }
 
-int obterIndiceDirecaoRobo(Vector2 direcao) {
-    if (fabsf(direcao.x) > fabsf(direcao.y)) {
-        return (direcao.x > 0) ? 3 : 2; // 3: Direita, 2: Esquerda
-    } else {
-        return (direcao.y > 0) ? 1 : 0; // 1: Baixo (Frente), 0: Cima (Costas)
-    }
-}
-
+// Assinatura usando (Jogo *jogo, Vector2 origem, int tamanhoTile) para bater com robos.h
 void desenharRobos(Jogo *jogo, Vector2 origem, int tamanhoTile) {
-    if (jogo == NULL) return;
+    if (!jogo) return;
 
-    Robo *atual = jogo->robos;
-    while (atual != NULL) {
-        if (atual->estado != ESTADO_DESLIGADO) {
-            float posX = origem.x + (atual->posicaoReal.x * tamanhoTile);
-            float posY = origem.y + (atual->posicaoReal.y * tamanhoTile);
+    Robo *r = jogo->robos;
+    while (r != NULL) {
+        int idxTex = obterIndiceDirecaoRobo(r->direcao);
+        float escadaX = (r->direcao.x > 0) ? -1.0f : 1.0f;
 
-            int idxDir = obterIndiceDirecaoRobo(atual->direcao);
-
-            Texture2D texturaAtual;
-            if (atual->tipo == ROBO_INTERCEPTADOR) {
-                texturaAtual = jogo->texRoboInterceptador[idxDir];
-            } else if (atual->tipo == ROBO_PERSEGUIDOR) {
-                texturaAtual = jogo->texRoboPerseguidor[idxDir];
-            } else {
-                texturaAtual = jogo->texRoboTemporizador[idxDir]; // Corrigido
-            }
-
-            Color corFiltro = (atual->estado == ESTADO_FUGINDO) ? BLUE : WHITE;
-
-            Rectangle origemTextura = { 0, 0, (float)texturaAtual.width, (float)texturaAtual.height };
-            Rectangle destino = { posX, posY, (float)tamanhoTile, (float)tamanhoTile };
-
-            DrawTexturePro(texturaAtual, origemTextura, destino, (Vector2){0, 0}, 0.0f, corFiltro);
+        Texture2D tex;
+        if (r->tipo == ROBO_TEMPORIZADOR) {
+            tex = jogo->texRoboTemporizador[idxTex];
+        } else if (r->tipo == ROBO_PERSEGUIDOR) {
+            tex = jogo->texRoboPerseguidor[idxTex];
+        } else {
+            tex = jogo->texRoboInterceptador[idxTex];
         }
-        atual = atual->next;
+
+        if (tex.id > 0) {
+            Vector2 posTela = {
+                origem.x + r->posicaoReal.x * (float)tamanhoTile,
+                origem.y + r->posicaoReal.y * (float)tamanhoTile
+            };
+
+            Rectangle srcRec = { 0.0f, 0.0f, (float)tex.width * escadaX, (float)tex.height };
+            Rectangle destRec = { posTela.x, posTela.y, (float)tamanhoTile, (float)tamanhoTile };
+            Vector2 origin = { 0.0f, 0.0f };
+
+            DrawTexturePro(tex, srcRec, destRec, origin, 0.0f, WHITE);
+        }
+
+        r = r->next;
     }
 }
 
@@ -117,7 +120,7 @@ void checarVitoriaDerrotaRoboRoxo(Jogo *jogo) {
 
     Robo *atual = jogo->robos;
     while (atual != NULL) {
-        if (atual->tipo == ROBO_TEMPORIZADOR && atual->estado != ESTADO_DESLIGADO) {
+        if (atual->tipo == ROBO_TEMPORIZADOR) {
             if (atual->posicao.linha == jogo->professor.posicao.linha &&
                 atual->posicao.coluna == jogo->professor.posicao.coluna) {
                 jogo->telaAtual = TELA_NORMAL;
@@ -125,14 +128,4 @@ void checarVitoriaDerrotaRoboRoxo(Jogo *jogo) {
         }
         atual = atual->next;
     }
-}
-
-void robosLiberar(Robo **cabeca) {
-    Robo *atual = *cabeca;
-    while (atual != NULL) {
-        Robo *temp = atual;
-        atual = atual->next;
-        free(temp);
-    }
-    *cabeca = NULL;
 }
