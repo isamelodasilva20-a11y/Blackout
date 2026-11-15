@@ -19,4 +19,11 @@ void hudLayoutMapa(struct Mapa *mapa, Vector2 *origem, int *tamanhoCasa);
 void desenharHUD(struct Jogo *jogo);
 void desenharTelaVitoria(struct Jogo *jogo);
 
+// Escurece o jogo e mostra "PAUSADO" por cima (o main chama enquanto a pausa durar)
+void desenharTelaPausa(void);
+
+// Tela inicial com a historia do jogo (telainicial.c). So volta quando o
+// jogador aperta ENTER/ESPACO ou fecha a janela.
+void telaInicialMostrar(void);
+
 #endif

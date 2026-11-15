@@ -1,5 +1,6 @@
 #include "robos.h"
 #include <stdio.h>
+#include <math.h>
 #include <stddef.h>
 #include "raylib.h"
 
@@ -19,20 +20,23 @@
 // aparecem direito, entao desenhamos so as cores basicas
 #define DETALHE_MINIMO 12
 
-// Cores do mapa 2D
-#define COR_PAREDE_TOPO    (Color){  30,  62, 120, 255 } // "tampa" da parede vista de cima
-#define COR_PAREDE_LUZ     (Color){  70, 110, 180, 255 } // borda de cima/esquerda (luz)
-#define COR_PAREDE_SOMBRA  (Color){  18,  38,  75, 255 } // borda da direita (sombra)
-#define COR_PAREDE_FRENTE  (Color){  14,  28,  56, 255 } // face da frente, vista "de lado"
-#define COR_CORREDOR       (Color){  44,  46,  54, 255 }
-#define COR_CORREDOR_LINHA (Color){  36,  38,  45, 255 } // rejunte entre as placas
-#define COR_SALA_A         (Color){  62,  52,  42, 255 } // piso de sala em xadrez (duas cores)
-#define COR_SALA_B         (Color){  56,  47,  38, 255 }
-#define COR_MADEIRA        (Color){ 125,  85,  50, 255 }
-#define COR_MADEIRA_ESCURA (Color){  80,  52,  30, 255 }
-#define COR_METAL          (Color){  95,  98, 108, 255 }
-#define COR_METAL_ESCURO   (Color){  60,  62,  70, 255 }
-#define COR_TELA           (Color){  80, 170, 235, 255 }
+// Cores do mapa 2D: paleta do guia de marca do CESAR
+// (#ff6002 laranja, #dd4012 laranja escuro, #161616, #3f3f3f, #818b9d, #fffeee)
+#define COR_CESAR_LARANJA  (Color){ 255,  96,   2, 255 } // #ff6002
+#define COR_CESAR_LARANJA2 (Color){ 221,  64,  18, 255 } // #dd4012
+#define COR_CESAR_CLARO    (Color){ 255, 254, 238, 255 } // #fffeee
+#define COR_PAREDE_TOPO    (Color){ 129, 139, 157, 255 } // #818b9d: "tampa" da parede vista de cima
+#define COR_PAREDE_LUZ     (Color){ 176, 184, 198, 255 } // borda de cima/esquerda (luz)
+#define COR_PAREDE_SOMBRA  (Color){  90,  97, 110, 255 } // borda da direita (sombra)
+#define COR_CORREDOR       (Color){  30,  30,  30, 255 } // quase #161616
+#define COR_CORREDOR_LINHA (Color){  63,  63,  63, 255 } // #3f3f3f: rejunte entre as placas
+#define COR_SALA_A         COR_CESAR_CLARO               // piso de sala em xadrez (duas cores)
+#define COR_SALA_B         (Color){ 238, 236, 216, 255 }
+#define COR_MADEIRA        (Color){  63,  63,  63, 255 } // mesas em grafite (#3f3f3f)
+#define COR_MADEIRA_ESCURA (Color){  22,  22,  22, 255 } // #161616
+#define COR_METAL          (Color){  63,  63,  63, 255 }
+#define COR_METAL_ESCURO   (Color){  22,  22,  22, 255 }
+#define COR_TELA           COR_CESAR_LARANJA             // telas acesas em laranja
 
 // Mistura duas cores: fator 0 = so a cor a, fator 1 = so a cor b
 static Color misturarCor(Color a, Color b, float fator) {
@@ -44,22 +48,25 @@ static Color misturarCor(Color a, Color b, float fator) {
     };
 }
 
-// true se a casa e parede. Fora do mapa conta como parede, para nao
-// desenhar bordas na beirada da tela.
+// Letra da casa, ou '#' fora do mapa: assim a beirada conta como parede e
+// ninguem precisa conferir os limites de novo
+static char letraCasa(Mapa *mapa, int linha, int coluna) {
+    if (linha < 0 || linha >= mapa->linhas || coluna < 0 || coluna >= mapa->colunas) return '#';
+    return mapa->matriz[linha][coluna];
+}
+
+// true se a casa e parede (ou fica fora do mapa)
 static bool ehParede(Mapa *mapa, int linha, int coluna) {
-    if (linha < 0 || linha >= mapa->linhas || coluna < 0 || coluna >= mapa->colunas) return true;
-    return mapa->matriz[linha][coluna] == '#';
+    return letraCasa(mapa, linha, coluna) == '#';
 }
 
 // Diz se o jogador pode entrar numa casa. Fica no mapa.c porque e o mapa
 // que sabe o que e cada letra; o movimento (jogador.c) so pergunta aqui.
 bool mapaCasaBloqueada(Mapa *mapa, int linha, int coluna) {
     if (mapa == NULL || mapa->matriz == NULL) return true;
-    // Fora dos limites do mapa nao da para andar
-    if (linha < 0 || linha >= mapa->linhas || coluna < 0 || coluna >= mapa->colunas) return true;
 
-    // Parede e moveis (mesa e computador) bloqueiam; o resto e piso
-    char c = mapa->matriz[linha][coluna];
+    // Parede (ou fora do mapa) e moveis (mesa e computador) bloqueiam; o resto e piso
+    char c = letraCasa(mapa, linha, coluna);
     return c == '#' || c == 'M' || c == 'C';
 }
 
@@ -72,10 +79,28 @@ static void desenharParede2D(Mapa *mapa, int i, int j, int x, int y, int t) {
     int frente = (t / 4 > 0) ? t / 4 : 1;
 
     DrawRectangle(x, y, t, t, COR_PAREDE_TOPO);
+
+    if (t >= DETALHE_MINIMO) {
+        // Efeitos: emenda escura entre os paineis da parede e, em algumas
+        // paredes, uma forma do guia de marca (circulo ou meio circulo)
+        DrawRectangleLines(x, y, t, t, Fade(BLACK, 0.12f));
+        DrawRectangleLines(x + borda + 1, y + borda + 1, t - 2 * borda - 2, t - 2 * borda - 2, Fade(WHITE, 0.10f));
+        if ((i * 5 + j * 3) % 7 == 0) {
+            float r = (float)t * 0.2f;
+            if ((i + j) % 2 == 0) DrawCircle(x + t / 2, y + t / 2, r, COR_CESAR_LARANJA2);
+            else DrawCircleSector((Vector2){ (float)x + (float)t / 2.0f, (float)y + (float)t / 2.0f + r / 2.0f }, r, 180.0f, 360.0f, 16, COR_CESAR_LARANJA2);
+        }
+    }
+
     if (!ehParede(mapa, i - 1, j)) DrawRectangle(x, y, t, borda, COR_PAREDE_LUZ);
     if (!ehParede(mapa, i, j - 1)) DrawRectangle(x, y, borda, t, COR_PAREDE_LUZ);
     if (!ehParede(mapa, i, j + 1)) DrawRectangle(x + t - borda, y, borda, t, COR_PAREDE_SOMBRA);
-    if (!ehParede(mapa, i + 1, j)) DrawRectangle(x, y + t - frente, t, frente, COR_PAREDE_FRENTE);
+    if (!ehParede(mapa, i + 1, j)) {
+        // Faixa laranja da frente: e a luz de emergencia do predio, que pulsa devagar
+        float pulso = 0.8f + 0.2f * sinf((float)GetTime() * 2.0f);
+        DrawRectangle(x, y + t - frente, t, frente, misturarCor(COR_CESAR_LARANJA2, COR_CESAR_LARANJA, pulso));
+        DrawRectangle(x, y + t - frente, t, 1, COR_PAREDE_SOMBRA);
+    }
 }
 
 // Piso: corredor ('.') e uma placa cinza com rejunte; sala (' ') e um xadrez
@@ -120,6 +145,55 @@ static void desenharComputador2D(int x, int y, int t) {
     DrawRectangle(x + t / 4, y + t * 6 / 10, t / 2, t / 8, LIGHTGRAY);              // teclado
 }
 
+// Tapete: no arquivo do andar, um retangulo de '=' vira um tapete so, com a
+// logo do CESAR no meio. Devolve true se a casa e tapete.
+bool mapaTemTapete(Mapa *mapa, int linha, int coluna) {
+    if (mapa == NULL || mapa->matriz == NULL) return false;
+    return letraCasa(mapa, linha, coluna) == '=';
+}
+
+// true se a casa e o canto de cima/esquerda de um tapete; nesse caso devolve
+// o tamanho dele em casas. A logo e desenhada uma vez so, a partir do canto.
+bool mapaCantoTapete(Mapa *mapa, int linha, int coluna, int *largura, int *altura) {
+    if (!mapaTemTapete(mapa, linha, coluna)) return false;
+    if (letraCasa(mapa, linha - 1, coluna) == '=' || letraCasa(mapa, linha, coluna - 1) == '=') return false;
+
+    int l = 0, a = 0;
+    while (letraCasa(mapa, linha, coluna + l) == '=') l++;
+    while (letraCasa(mapa, linha + a, coluna) == '=') a++;
+    if (largura != NULL) *largura = l;
+    if (altura != NULL) *altura = a;
+    return true;
+}
+
+// Logo do CESAR em claro sobre o tapete laranja (versao do logo sobre fundo
+// laranja do guia de marca), centralizada no retangulo (x, y, largura, altura)
+// em pixels. O simbolo e feito de elipses: a grande e, dentro dela, dois
+// aneis laranja abertos em cima. Com espaco, vem o nome embaixo.
+static void desenharLogoTapete2D(int x, int y, int largura, int altura) {
+    DrawRectangleLinesEx((Rectangle){ (float)x + 2, (float)y + 2, (float)largura - 4, (float)altura - 4 }, 2.0f, COR_CESAR_LARANJA2);
+
+    // O simbolo e 2x mais largo que alto: cabe em 70% da largura ou 45% da altura
+    float rx = fminf((float)largura * 0.35f, (float)altura * 0.45f), ry = rx / 2.0f;
+    float cx = (float)x + (float)largura / 2.0f, cy = (float)y + (float)altura / 2.0f;
+
+    int fonte = (int)(ry * 0.7f);
+    bool comNome = fonte >= 10;          // abaixo disso o texto fica ilegivel
+    if (comNome) cy -= ry * 0.45f;       // sobe o simbolo para o nome caber embaixo
+
+    float ay = cy - ry * 0.28f;          // os aneis ficam um pouco acima do centro
+    DrawEllipse((int)cx, (int)cy, rx, ry, COR_CESAR_CLARO);
+    DrawEllipse((int)cx, (int)ay, rx * 0.62f, ry * 0.58f, COR_CESAR_LARANJA);  // anel de fora
+    DrawEllipse((int)cx, (int)ay, rx * 0.44f, ry * 0.38f, COR_CESAR_CLARO);
+    DrawEllipse((int)cx, (int)ay, rx * 0.26f, ry * 0.20f, COR_CESAR_LARANJA);  // anel de dentro
+    DrawRectangle((int)(cx - rx * 0.08f), (int)(ay - ry * 0.62f), (int)(rx * 0.16f) + 1, (int)(ry * 0.45f) + 1, COR_CESAR_CLARO);
+
+    if (comNome) {
+        const char *nome = "C E S A R";
+        DrawText(nome, (int)cx - MeasureText(nome, fonte) / 2, (int)(cy + ry * 1.25f), fonte, COR_CESAR_CLARO);
+    }
+}
+
 // Percorre a matriz e desenha cada casa conforme a letra dela.
 // origem e tamanhoCasa permitem desenhar o mapa grande (2D) e o minimapa (3D)
 // com a mesma funcao.
@@ -148,8 +222,21 @@ void desenharMapa2D(Mapa *mapa, Vector2 origem, int tamanhoCasa) {
                 default:
                     // '.' (corredor) ou ' ' (sala)
                     desenharPiso2D(mapa, i, j, x, y, tamanhoCasa, mapa->matriz[i][j]);
+                    if (mapaTemTapete(mapa, i, j)) DrawRectangle(x, y, tamanhoCasa, tamanhoCasa, COR_CESAR_LARANJA);
                     break;
             }
+        }
+    }
+
+    // Logos dos tapetes: depois de tudo, senao as casas seguintes do proprio
+    // tapete cobririam o desenho. No minimapa fica so o retangulo laranja.
+    if (tamanhoCasa < DETALHE_MINIMO) return;
+    for (int i = 0; i < mapa->linhas; i++) {
+        for (int j = 0; j < mapa->colunas; j++) {
+            int largura, altura;
+            if (!mapaCantoTapete(mapa, i, j, &largura, &altura)) continue;
+            desenharLogoTapete2D((int)origem.x + j * tamanhoCasa, (int)origem.y + i * tamanhoCasa,
+                                 largura * tamanhoCasa, altura * tamanhoCasa);
         }
     }
 }
@@ -296,6 +383,7 @@ int mapaCarregar(Jogo *jogo, const char *arquivo) {
                 case '#': // parede
                 case '.': // piso de corredor
                 case ' ': // piso de sala
+                case '=': // tapete com a logo (andavel)
                 case 'M': // mesa
                 case 'C': // computador
                     mapa->matriz[i][j] = c;
@@ -329,6 +417,7 @@ int mapaCarregarAndar(Jogo *jogo, int andar) {
     // No primeiro andar a lista e a matriz ainda estao vazias (NULL), e as
     // duas funcoes simplesmente nao fazem nada.
     liberar_todos_itens(&jogo->itens);
+    robosLiberar(&jogo->robos); // senao os robos do andar anterior continuariam neste
     mapaLiberar(&jogo->mapa);
 
     // Monta o nome do arquivo a partir do numero do andar: 2 -> "andares/andar2.txt"

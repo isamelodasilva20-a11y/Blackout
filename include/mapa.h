@@ -14,6 +14,7 @@
  *   #   parede (bloqueia o movimento)
  *   .   piso de corredor
  *   ' ' (espaco) piso de sala - tambem e andavel, mas desenhado diferente
+ *   =   tapete com a logo do CESAR - um retangulo de '=' vira um tapete so
  *   M   mesa (movel: bloqueia o movimento)
  *   C   computador em cima de uma mesa (movel: bloqueia o movimento)
  *   P   onde o jogador comeca no andar
@@ -26,9 +27,9 @@
  *
  * Os andares se ligam: o S de um andar fica na mesma posicao do P do proximo,
  * como se o jogador tivesse acabado de subir a escada.
- *   andar 1: P (1,1)   -> S (22,38)   F (20,5)    2 baterias
- *   andar 2: P (22,38) -> S (1,1)     F (1,37)    3 baterias  (laboratorios)
- *   andar 3: P (1,1)   -> S (12,19)   F (23,37)   4 baterias  (sala de servidores no centro)
+ *   andar 1 (terreo):        P (1,1)   -> S (22,38)   salas 101/102, auditorio, secretaria, cantina, recepcao
+ *   andar 2 (laboratorios):  P (22,38) -> S (1,1)     labs 1 a 3, salas 201/202, sala dos professores
+ *   andar 3 (biblioteca):    P (1,1)   -> S (12,19)   biblioteca, servidores no centro, coordenacao, salas 301/302
  */
 
 #define TOTAL_ANDARES 3 // quantos arquivos andarN.txt o jogo percorre ate a vitoria
@@ -45,6 +46,12 @@ void desenharSaida2D(struct Mapa *mapa, Vector2 origem, int tamanhoCasa, bool li
 
 // true se o jogador NAO pode entrar na casa: fora do mapa, parede ou movel
 bool mapaCasaBloqueada(struct Mapa *mapa, int linha, int coluna);
+
+// Tapetes: no arquivo do andar, um retangulo de '=' vira um tapete laranja
+// com a logo do CESAR no meio (andavel, como o piso).
+bool mapaTemTapete(struct Mapa *mapa, int linha, int coluna);
+// true se a casa e o canto de cima/esquerda de um tapete; devolve o tamanho em casas
+bool mapaCantoTapete(struct Mapa *mapa, int linha, int coluna, int *largura, int *altura);
 
 // Le um arquivo de mapa para dentro de jogo->mapa. Tambem posiciona o jogador
 // (P) e o professor (F), guarda a escada (S) e cria as baterias (I) na lista

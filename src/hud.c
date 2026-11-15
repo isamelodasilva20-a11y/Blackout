@@ -9,7 +9,7 @@
 
 // Cores do HUD
 #define COR_HUD_FUNDO   (Color){  10,  12,  20, 220 }
-#define COR_HUD_LINHA   (Color){  70, 110, 180, 255 } // mesma cor da luz das paredes
+#define COR_HUD_LINHA   (Color){ 255,  96,   2, 255 } // laranja do CESAR (#ff6002)
 #define COR_VIDA        (Color){ 230,  41,  55, 255 }
 #define COR_VIDA_PERDIDA (Color){ 60,  60,  66, 255 }
 #define COR_BATERIA_HUD (Color){  40, 120, 255, 255 } // mesmo azul das baterias no 3D
@@ -195,8 +195,8 @@ void desenharHUD(Jogo *jogo) {
     DrawText(objetivo, (int)margem, linha2, fontePequena, corObjetivo);
 
     const char *controles = (jogo->modoVisao == 0)
-        ? "WASD: andar   V: visão 3D   F11: tela cheia"
-        : "W/S: andar   A/D: girar   V: visão 2D   F11: tela cheia";
+        ? "WASD: andar   V: visão 3D   P: pausar   F11: tela cheia"
+        : "W/S: andar   A/D: girar   V: visão 2D   P: pausar   F11: tela cheia";
     int larguraControles = MeasureText(controles, fontePequena);
     int fimObjetivo = (int)margem + MeasureText(objetivo, fontePequena);
     // So mostra os controles se eles nao forem encostar no objetivo
@@ -221,4 +221,16 @@ void desenharTelaVitoria(Jogo *jogo) {
     textoCentralizado("BACKUP CONCLUÍDO! TODOS OS PENDRIVES FORAM COLETADOS!", meio - (int)(60 * escala), fonteEscalada(30, escala), GREEN);
     textoCentralizado(TextFormat("Tempo total: %s", formatarTempo(jogo->tempoJogo)), meio - (int)(10 * escala), fonteEscalada(24, escala), WHITE);
     textoCentralizado("Pressione ESC para sair", meio + (int)(35 * escala), fonteEscalada(20, escala), LIGHTGRAY);
+}
+
+// Tela de pausa: escurece o jogo (que continua desenhado atras, parado) e
+// mostra o aviso no meio, com as cores da marca
+void desenharTelaPausa(void) {
+    float escala = hudEscala();
+    int meio = GetScreenHeight() / 2;
+
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.7f));
+    textoCentralizado("PAUSADO", meio - (int)(50 * escala), fonteEscalada(60, escala), COR_HUD_LINHA);
+    textoCentralizado("Pressione P para continuar", meio + (int)(25 * escala), fonteEscalada(22, escala), RAYWHITE);
+    textoCentralizado("ESC: sair do jogo", meio + (int)(58 * escala), fonteEscalada(16, escala), GRAY);
 }

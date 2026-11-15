@@ -11,7 +11,6 @@
 
 // Medidas do mundo 3D (1.0 = tamanho de uma casa do mapa)
 #define ALTURA_PAREDE   1.0f
-#define ALTURA_RODAPE   0.08f
 #define ALTURA_OLHOS    0.5f
 #define CAMPO_VISAO     70.0f  // abertura da camera, em graus
 #define RAIO_VISAO      7.0f   // ate quantas casas de distancia ainda se enxerga algo
@@ -21,20 +20,23 @@
 #define CASA_MINIMAPA   6
 #define MARGEM_MINIMAPA 10
 
-// Cores do mundo 3D (antes de escurecer pela distancia)
-#define COR_PAREDE_3D    (Color){  60,  92, 150, 255 }
-#define COR_RODAPE_3D    (Color){  25,  35,  60, 255 }
-#define COR_CORREDOR_3D  (Color){  62,  64,  74, 255 }
-#define COR_PLACA_3D     (Color){  74,  76,  88, 255 } // placa mais clara no meio do corredor
-#define COR_SALA_A_3D    (Color){ 100,  80,  60, 255 }
-#define COR_SALA_B_3D    (Color){  86,  69,  51, 255 }
-#define COR_TETO_3D      (Color){  22,  22,  28, 255 }
-#define COR_MADEIRA_3D   (Color){ 130,  88,  52, 255 }
-#define COR_MADEIRA_E_3D (Color){  80,  52,  30, 255 }
-#define COR_METAL_3D     (Color){ 100, 103, 115, 255 }
-#define COR_METAL_E_3D   (Color){  45,  47,  55, 255 }
-#define COR_TELA_3D      (Color){  80, 170, 235, 255 }
-#define COR_BATERIA_3D   (Color){  40, 120, 255, 255 }
+// Cores do mundo 3D (antes de escurecer pela distancia): paleta do guia de
+// marca do CESAR, igual a do mapa 2D
+#define COR_LARANJA_3D   (Color){ 255,  96,   2, 255 } // #ff6002
+#define COR_CLARO_3D     (Color){ 255, 254, 238, 255 } // #fffeee
+#define COR_PAREDE_3D    (Color){ 129, 139, 157, 255 } // #818b9d
+#define COR_RODAPE_3D    COR_LARANJA_3D                // faixa laranja ao pe da parede
+#define COR_CORREDOR_3D  (Color){  48,  48,  48, 255 }
+#define COR_PLACA_3D     (Color){  63,  63,  63, 255 } // #3f3f3f: placa no meio do corredor
+#define COR_SALA_A_3D    COR_CLARO_3D
+#define COR_SALA_B_3D    (Color){ 232, 230, 210, 255 }
+#define COR_FRISO_3D     (Color){  63,  63,  63, 255 } // #3f3f3f: friso no alto da parede
+#define COR_TETO_3D      (Color){  22,  22,  22, 255 } // #161616
+#define COR_MADEIRA_3D   (Color){  63,  63,  63, 255 } // mesas em grafite
+#define COR_MADEIRA_E_3D (Color){  22,  22,  22, 255 }
+#define COR_METAL_3D     (Color){  63,  63,  63, 255 }
+#define COR_METAL_E_3D   (Color){  22,  22,  22, 255 }
+#define COR_TELA_3D      COR_LARANJA_3D                // telas acesas em laranja
 
 // ---- Camera ----------------------------------------------------------------
 
@@ -185,16 +187,73 @@ static bool ehParede3D(Mapa *mapa, int linha, int coluna) {
     return mapa->matriz[linha][coluna] == '#';
 }
 
-// Uma face vertical de parede, com rodape escuro embaixo. (xEsq, zEsq) e
-// (xDir, zDir) sao os cantos no chao, da esquerda para a direita vistos de
-// fora da parede. sombra < 1 escurece as faces leste/oeste (volume nas quinas).
-static void desenharFaceParede(float xEsq, float zEsq, float xDir, float zDir, float sombra) {
-    Vector3 esqChao   = { xEsq, 0.0f, zEsq },          dirChao   = { xDir, 0.0f, zDir };
-    Vector3 esqRodape = { xEsq, ALTURA_RODAPE, zEsq }, dirRodape = { xDir, ALTURA_RODAPE, zDir };
-    Vector3 esqTopo   = { xEsq, ALTURA_PAREDE, zEsq }, dirTopo   = { xDir, ALTURA_PAREDE, zDir };
+// Forma do guia de marca na parede: circulo (1), meio circulo (2) ou anel (3),
+// desenhada como um leque de triangulos no plano da face.
+// (xEsq, zEsq) = canto esquerdo da face no chao; (dx, dz) = direcao ao longo
+// dela; (nx, nz) = pequeno passo para fora da parede.
+static void desenharFormaDaMarca(float xEsq, float zEsq, float dx, float dz, float nx, float nz, float sombra, int forma) {
+    const float meio = 0.5f, altura = 0.33f, raio = 0.16f; // centro da forma na face e tamanho
+    int fatias = (forma == 2) ? 12 : 24;                    // meio circulo = metade das 24 fatias
+    int camadas = (forma == 3) ? 2 : 1;                     // anel = circulo + miolo da cor da parede
 
-    desenharQuad(esqChao, dirChao, dirRodape, esqRodape, escalarCor(COR_RODAPE_3D, sombra));
-    desenharQuad(esqRodape, dirRodape, dirTopo, esqTopo, escalarCor(COR_PAREDE_3D, sombra));
+    for (int camada = 0; camada < camadas; camada++) {
+        float r = (camada == 0) ? raio : raio * 0.55f;
+        Color cor = escalarCor((camada == 0) ? COR_LARANJA_3D : COR_PAREDE_3D, sombra);
+        float fora = 1.0f + (float)camada;                  // o miolo fica a frente do circulo
+        float bx = xEsq + nx * fora, bz = zEsq + nz * fora; // canto da face, ja afastado da parede
+
+        rlBegin(RL_TRIANGLES);
+            for (int k = 0; k < fatias; k++) {
+                float a0 = 2.0f * PI * (float)k / 24.0f, a1 = 2.0f * PI * (float)(k + 1) / 24.0f;
+                float s0 = meio + r * cosf(a0), s1 = meio + r * cosf(a1);
+                vertice((Vector3){ bx + dx * meio, altura, bz + dz * meio }, cor);
+                vertice((Vector3){ bx + dx * s0, altura + r * sinf(a0), bz + dz * s0 }, cor);
+                vertice((Vector3){ bx + dx * s1, altura + r * sinf(a1), bz + dz * s1 }, cor);
+            }
+        rlEnd();
+    }
+}
+
+// Uma face vertical de parede, com efeitos. (xEsq, zEsq) e (xDir, zDir) sao
+// os cantos no chao, da esquerda para a direita vistos de fora da parede.
+// sombra < 1 escurece as faces leste/oeste (volume nas quinas).
+// De baixo para cima a face e feita de faixas empilhadas:
+//   rodape laranja | parede | faixa de luz laranja | parede | friso escuro
+// A faixa de luz e a iluminacao de emergencia do predio: pulsa devagar e
+// nunca apaga de todo, entao marca o caminho dos corredores no escuro.
+// enfeite: 0 = nada; 1, 2 ou 3 = uma forma do guia de marca na parede.
+static void desenharFaceParede(float xEsq, float zEsq, float xDir, float zDir, float sombra, int enfeite) {
+    static const float ALTURAS[] = { 0.0f, 0.08f, 0.58f, 0.62f, 0.90f, ALTURA_PAREDE };
+    const Color cores[] = { COR_RODAPE_3D, COR_PAREDE_3D, COR_LARANJA_3D, COR_PAREDE_3D, COR_FRISO_3D };
+
+    for (int k = 0; k < 5; k++) {
+        Vector3 a = { xEsq, ALTURAS[k], zEsq },     b = { xDir, ALTURAS[k], zDir };
+        Vector3 c = { xDir, ALTURAS[k + 1], zDir }, d = { xEsq, ALTURAS[k + 1], zEsq };
+        if (k != 2) {
+            desenharQuad(a, b, c, d, escalarCor(cores[k], sombra));
+            continue;
+        }
+        // Faixa de luz: brilho proprio (pulso), sem escurecer com a distancia
+        float pulso = 0.45f + 0.15f * sinf((float)GetTime() * 2.0f);
+        Color luz = escalarCor(COR_LARANJA_3D, fmaxf(pulso, luzEm((xEsq + xDir) / 2.0f, (zEsq + zDir) / 2.0f)));
+        rlBegin(RL_TRIANGLES);
+            rlColor4ub(luz.r, luz.g, luz.b, 255);
+            rlVertex3f(a.x, a.y, a.z); rlVertex3f(b.x, b.y, b.z); rlVertex3f(c.x, c.y, c.z);
+            rlVertex3f(a.x, a.y, a.z); rlVertex3f(c.x, c.y, c.z); rlVertex3f(d.x, d.y, d.z);
+        rlEnd();
+    }
+
+    // Os detalhes abaixo ficam 4 mm a frente da parede (direcao "para fora"),
+    // senao a placa de video nao sabe qual dos dois desenhar por cima
+    float dx = xDir - xEsq, dz = zDir - zEsq;       // ao longo da face
+    float nx = -dz * 0.004f, nz = dx * 0.004f;      // para fora da parede
+
+    // Emenda entre paineis: risco escuro na borda esquerda da face
+    Vector3 e0 = { xEsq + nx, 0.08f, zEsq + nz }, e1 = { xEsq + dx * 0.02f + nx, 0.08f, zEsq + dz * 0.02f + nz };
+    Vector3 e2 = { e1.x, 0.90f, e1.z },           e3 = { e0.x, 0.90f, e0.z };
+    desenharQuad(e0, e1, e2, e3, escalarCor(COR_FRISO_3D, sombra));
+
+    if (enfeite != 0) desenharFormaDaMarca(xEsq, zEsq, dx, dz, nx, nz, sombra, enfeite);
 }
 
 // '#' vira um cubo, mas so desenhamos as faces que encostam em piso:
@@ -202,11 +261,13 @@ static void desenharFaceParede(float xEsq, float zEsq, float xDir, float zDir, f
 static void desenharParede3D(Mapa *mapa, int i, int j) {
     float x0 = (float)j, x1 = x0 + 1.0f;
     float z0 = (float)i, z1 = z0 + 1.0f;
+    // Uma a cada 7 paredes (em diagonal) ganha uma forma da marca: 1, 2 ou 3
+    int enfeite = ((i * 5 + j * 3) % 7 == 0) ? 1 + (i + j) % 3 : 0;
 
-    if (!ehParede3D(mapa, i + 1, j)) desenharFaceParede(x0, z1, x1, z1, 1.0f);  // sul
-    if (!ehParede3D(mapa, i - 1, j)) desenharFaceParede(x1, z0, x0, z0, 1.0f);  // norte
-    if (!ehParede3D(mapa, i, j + 1)) desenharFaceParede(x1, z1, x1, z0, 0.75f); // leste
-    if (!ehParede3D(mapa, i, j - 1)) desenharFaceParede(x0, z0, x0, z1, 0.75f); // oeste
+    if (!ehParede3D(mapa, i + 1, j)) desenharFaceParede(x0, z1, x1, z1, 1.0f, enfeite);  // sul
+    if (!ehParede3D(mapa, i - 1, j)) desenharFaceParede(x1, z0, x0, z0, 1.0f, enfeite);  // norte
+    if (!ehParede3D(mapa, i, j + 1)) desenharFaceParede(x1, z1, x1, z0, 0.75f, enfeite); // leste
+    if (!ehParede3D(mapa, i, j - 1)) desenharFaceParede(x0, z0, x0, z1, 0.75f, enfeite); // oeste
 }
 
 // Piso e teto de uma casa andavel.
@@ -225,6 +286,39 @@ static void desenharPisoTeto3D(int i, int j, bool corredor) {
     }
 
     desenharRetanguloDeitado(x0, z0, x1, z1, ALTURA_PAREDE, false, COR_TETO_3D);
+}
+
+// Elipse deitada no chao, na altura y, com centro (cx, cz) e raios rx/rz.
+// E um "leque" de triangulos saindo do centro; a ordem dos cantos e
+// anti-horaria vista de cima, para a face aparecer por cima.
+static void desenharElipseDeitada(float cx, float cz, float rx, float rz, float y, Color cor) {
+    const int fatias = 24;
+    rlBegin(RL_TRIANGLES);
+        for (int k = 0; k < fatias; k++) {
+            float a0 = 2.0f * PI * (float)k / (float)fatias;
+            float a1 = 2.0f * PI * (float)(k + 1) / (float)fatias;
+            vertice((Vector3){ cx, y, cz }, cor);
+            vertice((Vector3){ cx + rx * cosf(a1), y, cz + rz * sinf(a1) }, cor);
+            vertice((Vector3){ cx + rx * cosf(a0), y, cz + rz * sinf(a0) }, cor);
+        }
+    rlEnd();
+}
+
+// Logo do CESAR em claro sobre o tapete laranja, centralizada no retangulo de
+// casas que comeca em (i, j). E a mesma do mapa 2D, feita de elipses; cada
+// camada fica um pouquinho acima da anterior para a placa de video saber
+// qual desenhar por cima. O "cima" da logo aponta para o norte do mapa.
+static void desenharLogoTapete3D(int i, int j, int largura, int altura) {
+    float cx = (float)j + (float)largura / 2.0f, cz = (float)i + (float)altura / 2.0f;
+    float rx = fminf((float)largura * 0.35f, (float)altura * 0.45f), rz = rx / 2.0f;
+    float az = cz - rz * 0.28f; // os aneis ficam um pouco acima (norte) do centro
+
+    desenharElipseDeitada(cx, cz, rx, rz, 0.010f, COR_CLARO_3D);
+    desenharElipseDeitada(cx, az, rx * 0.62f, rz * 0.58f, 0.012f, COR_LARANJA_3D);
+    desenharElipseDeitada(cx, az, rx * 0.44f, rz * 0.38f, 0.014f, COR_CLARO_3D);
+    desenharElipseDeitada(cx, az, rx * 0.26f, rz * 0.20f, 0.016f, COR_LARANJA_3D);
+    // Abertura dos aneis em cima
+    desenharRetanguloDeitado(cx - rx * 0.08f, az - rz * 0.62f, cx + rx * 0.08f, az - rz * 0.17f, 0.018f, true, COR_CLARO_3D);
 }
 
 // ---- Objetos: moveis, escada, professor ------------------------------------
@@ -366,6 +460,12 @@ static void desenharCasa3D(Mapa *mapa, int i, int j) {
     }
 
     desenharPisoTeto3D(i, j, c == '.'); // moveis ficam em salas: piso de sala
+    if (mapaTemTapete(mapa, i, j)) {
+        // Tapete: placa laranja um pouco acima do piso e, no canto, a logo inteira
+        desenharRetanguloDeitado((float)j, (float)i, (float)j + 1.0f, (float)i + 1.0f, 0.008f, true, COR_LARANJA_3D);
+        int largura, altura;
+        if (mapaCantoTapete(mapa, i, j, &largura, &altura)) desenharLogoTapete3D(i, j, largura, altura);
+    }
 
     float cx = centro(j), cz = centro(i);
     if (c == 'M') desenharMesa3D(cx, cz, luzEm(cx, cz));

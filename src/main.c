@@ -77,7 +77,10 @@ int main(void) {
     float tempoPasso = 0.0f; // Temporizador para controlar a velocidade do movimento contínuo
     const float INTERVALO_PASSO = 0.20f; // Intervalo de 0.20s entre cada passo ao segurar a tecla
     int venceu = 0;
+    int pausado = 0; // 1 enquanto o jogo esta pausado (tecla P)
 
+
+    if (carregou) telaInicialMostrar(); // historia do jogo; ENTER comeca
 
     while (carregou && !WindowShouldClose()) {
         // --- F11 alterna tela cheia (sem borda, na resolucao do monitor) ---
@@ -85,8 +88,13 @@ int main(void) {
             ToggleBorderlessWindowed();
         }
 
+        // --- P pausa e continua (so durante o jogo, nao no quiz nem no fim) ---
+        if (IsKeyPressed(KEY_P) && !venceu && jogo.telaAtual == TELA_NORMAL) {
+            pausado = !pausado;
+        }
+
         // --- Cronometro: soma o tempo de cada quadro ate o jogador vencer ---
-        if (!venceu) {
+        if (!venceu && !pausado) {
             jogo.tempoJogo += GetFrameTime();
         }
 
@@ -101,12 +109,12 @@ int main(void) {
         // Testado ANTES de ler as teclas: assim o quiz só abre no quadro seguinte
         // ao passo, e a tecla usada para andar até o professor (A ou D) não é
         // lida pelo quiz como resposta.
-        if (!venceu && jogo.telaAtual == TELA_NORMAL &&
+        if (!venceu && !pausado && jogo.telaAtual == TELA_NORMAL &&
             verificar_interacao_professor(&jogo.jogador, &jogo.professor)) {
             jogo.telaAtual = TELA_QUIZ;
         }
 
-        if (!venceu && jogo.telaAtual == TELA_NORMAL) {
+        if (!venceu && !pausado && jogo.telaAtual == TELA_NORMAL) {
             tempoPasso += GetFrameTime();
 
             // Atualizacao continua e fluida de todos os robos (estilo Pac-Man)
@@ -245,6 +253,7 @@ int main(void) {
             if (jogo.telaAtual == TELA_QUIZ) desenhar_quiz(&jogo);
 
             if (venceu) desenharTelaVitoria(&jogo);
+            if (pausado) desenharTelaPausa();
 
         EndDrawing();
     }
