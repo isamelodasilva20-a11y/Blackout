@@ -171,6 +171,16 @@ void desenharHUD(Jogo *jogo) {
     desenharIconePendrive(x, meioLinha1 - alturaIcone * 0.35f, alturaIcone * 1.4f, alturaIcone * 0.7f, corPendrive);
     x += alturaIcone * 1.4f + 8.0f * escala;
     DrawText("PENDRIVE", (int)x, linha1, fonte, corPendrive);
+    x += (float)MeasureText("PENDRIVE", fonte) + espaco;
+
+    float progLanterna = jogo->jogador.tempoLanterna / 10.0f;
+    if (progLanterna < 0.0f) progLanterna = 0.0f;
+    if (progLanterna > 1.0f) progLanterna = 1.0f;
+
+    desenharIconeBateria(x, meioLinha1 - alturaIcone / 2.0f, alturaIcone * 1.6f, alturaIcone, progLanterna, escala);
+    x += alturaIcone * 1.6f + alturaIcone * 0.2f + 6.0f * escala;
+    Color corLanterna = (jogo->jogador.bateria > 0) ? YELLOW : GRAY;
+    DrawText("LANTERNA", (int)x, linha1, fonte, corLanterna);
 
     // Cronometro, alinhado na direita
     const char *textoTempo = formatarTempo(jogo->tempoJogo);

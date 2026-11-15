@@ -143,7 +143,13 @@ void desenharJogador2D(Jogo *jogo, Vector2 origem, int tamanhoCasa) {
     // Pivô no centro horizontal do sprite
     Vector2 origin = { tamanho / 2.0f, 0.0f };
 
-    DrawTexturePro(jogo->texturaJogador, srcRec, destRec, origin, 0.0f, WHITE);
+    Color corJogador = WHITE;
+    if (jogo->jogador.tempoInvulneravel > 0.0f) {
+        int pisca = (int)(jogo->jogador.tempoInvulneravel * 10.0f) % 2;
+        corJogador = (pisca == 0) ? Fade(RED, 0.5f) : WHITE;
+    }
+
+    DrawTexturePro(jogo->texturaJogador, srcRec, destRec, origin, 0.0f, corJogador);
 }
 
 
