@@ -25,16 +25,16 @@
 static const char *HISTORIA[] = {
     "A CESAR School foi invadida por hackers.",
     "",
-    "Os arquivos do projeto sumiram dos servidores, e só os",
-    "professores da cadeira de PIF guardam as cópias.",
+    "Os seus arquivos do TCC sumiram dos servidores, e só os",
+    "professores da cadeira de PIF possuem os backups!.",
     "",
-    "Encontre cada professor, responda ao desafio e recupere",
-    "os arquivos antes que seja tarde.",
+    "Encontre seus professores, responda suas perguntas e ",
+    "recupere seu projeto antes que seja tarde.",
     "",
-    "Cuidado: os robôs de mineiro foram modificados pelos",
-    "hackers para pegar você.",
+    "Cuidado: os robôs do professor Mineiro foram modificados pelos",
+    "hackers para pegar você e destruir seus arquivos.",
     "",
-    "E a energia do prédio está falhando...",
+    "Ah! E a energia do prédio está falhando...",
 };
 #define TOTAL_LINHAS ((int)(sizeof(HISTORIA) / sizeof(HISTORIA[0])))
 
