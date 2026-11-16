@@ -26,4 +26,6 @@ void desenharTelaPausa(void);
 // jogador aperta ENTER/ESPACO ou fecha a janela.
 void telaInicialMostrar(void);
 
+void desenharTelaGameOver(void);
+
 #endif

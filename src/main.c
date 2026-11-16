@@ -65,7 +65,10 @@ int main(void) {
     // --- CARREGAMENTO DOS ROBÔS E RECURSOS DO JOGO ---
     jogoCarregar(&jogo);
 
-    jogo.jogador.vidas = VIDAS_INICIAIS; // as vidas valem para a partida toda, nao por andar
+    jogo.jogador.vidas = VIDAS_INICIAIS;
+    jogo.jogador.bateria = 0;
+    jogo.jogador.tempoInvulneravel = 0.0f;
+
 
     // Começa no andar 1. O professor (posição e pergunta) também vem daqui.
     // Se der erro, o loop nem roda, mas o programa ainda passa pela limpeza
@@ -93,10 +96,10 @@ int main(void) {
             pausado = !pausado;
         }
 
-        // --- Cronometro: soma o tempo de cada quadro ate o jogador vencer ---
-        if (!venceu && !pausado) {
+        if (!venceu && !pausado && jogo.telaAtual != TELA_GAME_OVER) {
             jogo.tempoJogo += GetFrameTime();
         }
+
 
         // --- V alterna a visão: 0 = 2D (de cima), 1 = 3D (primeira pessoa) ---
         if (IsKeyPressed(KEY_V)) {
@@ -253,6 +256,20 @@ int main(void) {
             if (jogo.telaAtual == TELA_QUIZ) desenhar_quiz(&jogo);
 
             if (venceu) desenharTelaVitoria(&jogo);
+
+            if (jogo.telaAtual == TELA_GAME_OVER) {
+                desenharTelaGameOver();
+                if (IsKeyPressed(KEY_R)) {
+                    jogo.jogador.vidas = VIDAS_INICIAIS;
+                    jogo.jogador.bateria = 100;
+                    jogo.jogador.tempoInvulneravel = 0.0f;
+                    jogo.jogador.temPendrive = false;
+                    jogo.tempoJogo = 0.0f;
+                    jogo.telaAtual = TELA_NORMAL;
+                    mapaCarregarAndar(&jogo, 1);
+                }
+            }
+
             if (pausado) desenharTelaPausa();
 
         EndDrawing();

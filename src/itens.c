@@ -75,6 +75,10 @@ void desenhar_item_3d(Jogo *jogo, Camera3D camera) {
 void coletar_item(Item **itens, Jogador *jogador){
     //verifica se existem os itens q serão analisados
     if (itens == NULL || *itens == NULL || jogador == NULL) return;
+
+    // Se a bateria já está carregada, não coleta uma nova pilha do chão
+    if (jogador->bateria > 0) return;
+
     //auxiliares locais
     Item *atual = *itens;
     Item *anterior = NULL;
@@ -100,6 +104,7 @@ void coletar_item(Item **itens, Jogador *jogador){
         }
     }
 }
+
 
 int verificar_vitoria(Item *itens){
     //condicional implicita que devolve 0(f) ou 1(v)

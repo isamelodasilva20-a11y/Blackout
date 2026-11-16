@@ -143,7 +143,16 @@ void desenharJogador2D(Jogo *jogo, Vector2 origem, int tamanhoCasa) {
     // Pivô no centro horizontal do sprite
     Vector2 origin = { tamanho / 2.0f, 0.0f };
 
-    DrawTexturePro(jogo->texturaJogador, srcRec, destRec, origin, 0.0f, WHITE);
+    // Faz o personagem piscar enquanto estiver invulnerável
+    Color corSprite = WHITE;
+    if (jogo->jogador.tempoInvulneravel > 0.0f) {
+        // Alterna a transparência a cada 0.1s
+        int pisca = (int)(jogo->jogador.tempoInvulneravel * 10.0f) % 2;
+        corSprite = (pisca == 0) ? Fade(WHITE, 0.35f) : WHITE;
+    }
+
+    DrawTexturePro(jogo->texturaJogador, srcRec, destRec, origin, 0.0f, corSprite);
+
 }
 
 
