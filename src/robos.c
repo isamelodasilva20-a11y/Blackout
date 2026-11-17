@@ -71,6 +71,11 @@ void robosAdicionar(Robo **cabeca, Posicao posicao, TipoRobo tipo, int andar) {
 }
 
 void robosLiberar(Robo **cabeca) {
+    for (int i = 0; i < MAX_ROBOS_RECUO; i++) {
+        robosEmRecuo[i] = NULL;
+        tempoRecuoRobos[i] = 0.0f;
+    }
+
     if (cabeca == NULL) return;
     
     Robo *atual = *cabeca;
@@ -192,6 +197,7 @@ static Posicao calcularPassoFuga(Mapa *mapa, Robo *robo, Posicao posJogador) {
 
 void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
     if (jogo == NULL) return;
+    atualizarTimersRecuo(deltaTime);
 
     bool lanternaAtiva = (jogo->jogador.tempoLanterna > 0.0f && jogo->jogador.bateria > 0);
 
