@@ -276,17 +276,6 @@ int main(void) {
             if (venceu) desenharTelaVitoria(&jogo);
 
             if (jogo.telaAtual == TELA_GAME_OVER) {
-                DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.80f));
-                const char *msgGO = "GAME OVER!";
-                int tamGO = 40;
-                DrawText(msgGO, (GetScreenWidth() - MeasureText(msgGO, tamGO)) / 2,
-                         GetScreenHeight() / 2 - 30, tamGO, RED);
-
-                const char *subGO = "Pressione ESC para sair";
-                int tamSub = 20;
-                DrawText(subGO, (GetScreenWidth() - MeasureText(subGO, tamSub)) / 2,
-                         GetScreenHeight() / 2 + 25, tamSub, LIGHTGRAY);
-            }
                 desenharTelaGameOver();
                 if (IsKeyPressed(KEY_R)) {
                     jogo.jogador.vidas = VIDAS_INICIAIS;

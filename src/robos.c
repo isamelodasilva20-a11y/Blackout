@@ -166,6 +166,8 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
         if (atual->estado == ESTADO_DESLIGADO) {
             atual = atual->next;
             continue;
+        }
+
         // Se o robô estiver paralisado pela lanterna, apenas desconta o tempo e não anda
         if (atual->tempoParalisado > 0.0f) {
             atual->tempoParalisado -= deltaTime;

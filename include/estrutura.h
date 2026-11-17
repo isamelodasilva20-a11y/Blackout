@@ -33,8 +33,7 @@ typedef struct Jogador{
     int bateria;
     float tempoLanterna;
     float tempoInvulneravel;
-    int frame;
-    float tempoInvulneravel;       
+    int frame;      
     bool temPendrive;  
 } Jogador;
 
