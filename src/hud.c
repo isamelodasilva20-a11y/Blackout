@@ -272,7 +272,7 @@ void desenharHUD(Jogo *jogo) {
         DrawText(controles, largura - (int)margem - larguraControles, linha2, fontePequena, GRAY);
     }
     // Flash vermelho rapido na tela ao tomar dano de um robo
-    if (jogo->jogador.tempoInvulneravel > 2.15f) {
+    if (jogo->jogador.tempoInvulneravel > 2.65f) {
         DrawRectangle(0, 0, largura, GetScreenHeight(), Fade(RED, 0.28f));
     }
     desenharAlertaProximidade(jogo);

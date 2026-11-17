@@ -155,7 +155,69 @@ static Posicao calcularPassoFuga(Mapa *mapa, Robo *robo, Posicao posJogador) {
 
     return melhor;
 }
+// Garante que o destino da patrulha seja um piso livre (nao parede nem mesa)
+Posicao buscarCasaLivrePerto(Mapa *mapa, int linhaBase, int colunaBase) {
+    if (!mapaCasaBloqueada(mapa, linhaBase, colunaBase)) {
+        return (Posicao){ linhaBase, colunaBase };
+    }
 
+    for (int raio = 1; raio <= 6; raio++) {
+        for (int dl = -raio; dl <= raio; dl++) {
+            for (int dc = -raio; dc <= raio; dc++) {
+                int l = linhaBase + dl;
+                int c = colunaBase + dc;
+                if (l > 0 && l < mapa->linhas - 1 && c > 0 && c < mapa->colunas - 1) {
+                    if (!mapaCasaBloqueada(mapa, l, c)) {
+                        return (Posicao){ l, c };
+                    }
+                }
+            }
+        }
+    }
+
+    return (Posicao){ linhaBase, colunaBase };
+}
+
+// Faz o robo sair das salas e circular pelos 4 cantos do mapa usando BFS
+Posicao calcularPassoPatrulha(Mapa *mapa, Robo *robo) {
+    static int pontoAtual = 0;
+
+    int linhas[4] = {
+        mapa->linhas / 4,
+        mapa->linhas / 4,
+        (mapa->linhas * 3) / 4,
+        (mapa->linhas * 3) / 4
+    };
+    int colunas[4] = {
+        mapa->colunas / 4,
+        (mapa->colunas * 3) / 4,
+        (mapa->colunas * 3) / 4,
+        mapa->colunas / 4
+    };
+
+    Posicao destino = buscarCasaLivrePerto(mapa, linhas[pontoAtual], colunas[pontoAtual]);
+
+    // Quando chega no ponto atual, troca para o proximo canto do mapa
+    if (robo->posicao.linha == destino.linha && robo->posicao.coluna == destino.coluna) {
+        pontoAtual++;
+        if (pontoAtual >= 4) {
+            pontoAtual = 0;
+        }
+        destino = buscarCasaLivrePerto(mapa, linhas[pontoAtual], colunas[pontoAtual]);
+    }
+
+    Posicao passo = calcularProximoPassoBFS(mapa, robo->posicao, destino);
+
+    // Se o caminho estiver bloqueado, pula para o proximo ponto
+    if (passo.linha == robo->posicao.linha && passo.coluna == robo->posicao.coluna) {
+        pontoAtual++;
+        if (pontoAtual >= 4) {
+            pontoAtual = 0;
+        }
+    }
+
+    return passo;
+}
 void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
     if (jogo == NULL) return;
 
@@ -380,24 +442,20 @@ void checarVitoriaDerrotaRobos(Jogo *jogo) {
             }
         }
         
-        // 2) ROBÔS LARANJA E VERMELHO: Checa colisão com o JOGADOR
+        // 2) ROBÔS LARANJA E VERMELHO: Checa colisão visual com o JOGADOR
         else if (atual->tipo == ROBO_PERSEGUIDOR || atual->tipo == ROBO_INTERCEPTADOR) {
-            if (jogo->jogador.tempoInvulneravel <= 0.0f) {
+            if (jogo->jogador.tempoInvulneravel <= 0.0f && roboQueBateu == NULL) {
                 float dx = atual->posicaoReal.x - (float)jogo->jogador.posicao.coluna;
                 float dy = atual->posicaoReal.y - (float)jogo->jogador.posicao.linha;
                 float dist = sqrtf(dx * dx + dy * dy);
 
-                int mesmaCasa = (atual->posicao.linha == jogo->jogador.posicao.linha &&
-                                 atual->posicao.coluna == jogo->jogador.posicao.coluna);
-
-                if (dist < 0.8f || mesmaCasa) {
-                    jogo->jogador.tempoInvulneravel = 2.0f;
-
+                // Dispara só quando encostar de verdade (sem mesmaCasa adiantado)
+                if (dist <= 0.65f) {
                     if (jogo->jogador.bateria > 0) {
                         // Consome toda a carga da bateria (1 pilha = 1 proteção)
                         jogo->jogador.bateria = 0;
                     } else {
-                        // Sem bateria: perde 1 coração
+                        // Sem bateria: perde 1 coração na hora
                         jogo->jogador.vidas--;
                         if (jogo->jogador.vidas <= 0) {
                             jogo->jogador.vidas = 0;
@@ -405,6 +463,13 @@ void checarVitoriaDerrotaRobos(Jogo *jogo) {
                             return;
                         }
                     }
+
+                    // Recua 5 casas para trás e depois volta a perseguir
+                    jogo->jogador.tempoInvulneravel = 3.0f;
+                    roboQueBateu = atual;
+                    passosRecuo = 5;
+                    atual->posicaoAnterior = atual->posicao;
+                    atual->posicao = calcularPassoFuga(&jogo->mapa, atual, jogo->jogador.posicao);
                 }
             }
         }
