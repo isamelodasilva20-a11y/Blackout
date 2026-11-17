@@ -34,7 +34,8 @@ typedef struct Jogador{
     float tempoLanterna;
     float tempoInvulneravel;
     int frame;
-    bool temPendrive;         
+    float tempoInvulneravel;       
+    bool temPendrive;  
 } Jogador;
 
 
@@ -85,8 +86,8 @@ typedef struct Robo {
 
     Vector2 posicaoReal;    // Posição fluida na tela (float)
     Vector2 direcao;        // Direção do movimento ex: {1, 0}
-    float velocidade;       //velocidade do robo
-    
+    float velocidade;
+    float tempoParalisado;       
     struct Robo *next;
 } Robo;
 

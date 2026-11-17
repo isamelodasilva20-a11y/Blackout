@@ -28,6 +28,7 @@ void robosAdicionar(Robo **cabeca, Posicao posicao, TipoRobo tipo, int andar) {
     novo->estado = ESTADO_NORMAL;
     novo->velocidade = 2.0f + (andar - 1) * 0.2f;
     novo->direcao = (Vector2){ 0, 0 };
+    novo->tempoParalisado = 0.0f;
     novo->next = *cabeca;
     *cabeca = novo;
 }
@@ -165,6 +166,38 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
         if (atual->estado == ESTADO_DESLIGADO) {
             atual = atual->next;
             continue;
+        // Se o robô estiver paralisado pela lanterna, apenas desconta o tempo e não anda
+        if (atual->tempoParalisado > 0.0f) {
+            atual->tempoParalisado -= deltaTime;
+            if (atual->tempoParalisado < 0.0f) atual->tempoParalisado = 0.0f;
+            atual = atual->next;
+            continue;
+        }
+
+        Posicao alvo = jogo->jogador.posicao;
+
+        if (atual->tipo == ROBO_INTERCEPTADOR) {
+            // Calcula distância até o jogador: se já estiver perto (<= 2 casas), vai direto nele!
+            int distL = abs(atual->posicao.linha - jogo->jogador.posicao.linha);
+            int distC = abs(atual->posicao.coluna - jogo->jogador.posicao.coluna);
+
+            if (distL + distC <= 2) {
+                alvo = jogo->jogador.posicao;
+            } else {
+                alvo = jogo->jogador.posicao;
+                switch (jogo->jogador.direcao) {
+                    case DIR_CIMA:     alvo.linha -= 2; break;
+                    case DIR_BAIXO:    alvo.linha += 2; break;
+                    case DIR_ESQUERDA: alvo.coluna -= 2; break;
+                    case DIR_DIREITA:  alvo.coluna += 2; break;
+                }
+            }
+        } else if (atual->tipo == ROBO_TEMPORIZADOR) {
+            if (jogo->professor.posicao.linha >= 0 && jogo->professor.posicao.coluna >= 0) {
+                alvo = jogo->professor.posicao;
+            } else {
+                alvo = jogo->jogador.posicao;
+            }
         }
 
         // Laranja e Vermelho recuam se a lanterna tiver bateria, e perseguem se estiver sem
@@ -301,55 +334,76 @@ void desenharRobos(Jogo *jogo, Vector2 origem, int tamanhoTile) {
 void checarVitoriaDerrotaRobos(Jogo *jogo) {
     if (jogo == NULL) return;
 
+    // Atualiza o cronômetro de invulnerabilidade do jogador
+    if (jogo->jogador.tempoInvulneravel > 0.0f) {
+        jogo->jogador.tempoInvulneravel -= GetFrameTime();
+        if (jogo->jogador.tempoInvulneravel < 0.0f) {
+            jogo->jogador.tempoInvulneravel = 0.0f;
+        }
+    }
+
     Robo *atual = jogo->robos;
     while (atual != NULL) {
-        if (atual->estado == ESTADO_DESLIGADO) {
-            atual = atual->next;
-            continue;
-        }
-
-        // 1) ROBO ROXO: Game Over imediato ao tocar no PROFESSOR
+        // 1) ROBÔ ROXO (Temporizador):
         if (atual->tipo == ROBO_TEMPORIZADOR) {
-            float dxProf = atual->posicaoReal.x - (float)jogo->professor.posicao.coluna;
-            float dyProf = atual->posicaoReal.y - (float)jogo->professor.posicao.linha;
-            float distProf = sqrtf(dxProf * dxProf + dyProf * dyProf);
+            // 1a. Checa se o JOGADOR tocou no robô roxo para paralisá-lo usando a lanterna
+            if (jogo->jogador.tempoInvulneravel <= 0.0f && jogo->jogador.bateria > 0 && atual->tempoParalisado <= 0.0f) {
+                float dxJog = atual->posicaoReal.x - (float)jogo->jogador.posicao.coluna;
+                float dyJog = atual->posicaoReal.y - (float)jogo->jogador.posicao.linha;
+                float distJog = sqrtf(dxJog * dxJog + dyJog * dyJog);
 
-            int mesmaCasaProf = (atual->posicao.linha == jogo->professor.posicao.linha &&
+                int mesmaCasaJog = (atual->posicao.linha == jogo->jogador.posicao.linha &&
+                                    atual->posicao.coluna == jogo->jogador.posicao.coluna);
+
+                if (distJog < 0.8f || mesmaCasaJog) {
+                    jogo->jogador.bateria = 0;            // Consome a carga da lanterna
+                    jogo->jogador.tempoInvulneravel = 1.5f;
+                    atual->tempoParalisado = 5.0f;        // Robô roxo fica parado por 5 segundos!
+                }
+            }
+
+            // 1b. Checa se o robô roxo (não paralisado) encostou no PROFESSOR
+            if (!jogo->professor.ajudado && !jogo->jogador.temPendrive) {
+                float dx = atual->posicaoReal.x - (float)jogo->professor.posicao.coluna;
+                float dy = atual->posicaoReal.y - (float)jogo->professor.posicao.linha;
+                float dist = sqrtf(dx * dx + dy * dy);
+
+                int mesmaCasa = (atual->posicao.linha == jogo->professor.posicao.linha &&
                                  atual->posicao.coluna == jogo->professor.posicao.coluna);
 
-            if (distProf < 0.7f || mesmaCasaProf) {
-                jogo->telaAtual = TELA_GAME_OVER;
-                return;
-            }
-        }
-
-        // 2) ROBOS: Interacao com o JOGADOR
-        float dx = atual->posicaoReal.x - (float)jogo->jogador.posicao.coluna;
-        float dy = atual->posicaoReal.y - (float)jogo->jogador.posicao.linha;
-        float dist = sqrtf(dx * dx + dy * dy);
-
-        int mesmaCasa = (atual->posicao.linha == jogo->jogador.posicao.linha &&
-                         atual->posicao.coluna == jogo->jogador.posicao.coluna);
-
-        if (dist < 0.75f || mesmaCasa) {
-            if (atual->estado == ESTADO_FUGINDO) {
-                // Com bateria na lanterna: elimina o robo
-                atual->estado = ESTADO_DESLIGADO;
-                jogo->jogador.pontos += 100;
-            } else if (jogo->jogador.tempoInvulneravel <= 0.0f) {
-                // Sem bateria na lanterna: tira 1 coracao imediatamente
-                jogo->jogador.vidas--;
-
-                if (jogo->jogador.vidas <= 0) {
-                    jogo->jogador.vidas = 0;
+                if (dist < 0.8f || mesmaCasa) {
                     jogo->telaAtual = TELA_GAME_OVER;
                     return;
                 }
+            }
+        }
+        
+        // 2) ROBÔS LARANJA E VERMELHO: Checa colisão com o JOGADOR
+        else if (atual->tipo == ROBO_PERSEGUIDOR || atual->tipo == ROBO_INTERCEPTADOR) {
+            if (jogo->jogador.tempoInvulneravel <= 0.0f) {
+                float dx = atual->posicaoReal.x - (float)jogo->jogador.posicao.coluna;
+                float dy = atual->posicaoReal.y - (float)jogo->jogador.posicao.linha;
+                float dist = sqrtf(dx * dx + dy * dy);
 
-                // Recua ~3 casas para tras por 1.3s e volta a perseguir
-                jogo->jogador.tempoInvulneravel = 1.3f;
-                atual->posicaoAnterior = atual->posicao;
-                atual->posicao = calcularPassoFuga(&jogo->mapa, atual, jogo->jogador.posicao);
+                int mesmaCasa = (atual->posicao.linha == jogo->jogador.posicao.linha &&
+                                 atual->posicao.coluna == jogo->jogador.posicao.coluna);
+
+                if (dist < 0.8f || mesmaCasa) {
+                    jogo->jogador.tempoInvulneravel = 2.0f;
+
+                    if (jogo->jogador.bateria > 0) {
+                        // Consome toda a carga da bateria (1 pilha = 1 proteção)
+                        jogo->jogador.bateria = 0;
+                    } else {
+                        // Sem bateria: perde 1 coração
+                        jogo->jogador.vidas--;
+                        if (jogo->jogador.vidas <= 0) {
+                            jogo->jogador.vidas = 0;
+                            jogo->telaAtual = TELA_GAME_OVER;
+                            return;
+                        }
+                    }
+                }
             }
         }
 

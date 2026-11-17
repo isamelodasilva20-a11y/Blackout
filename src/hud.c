@@ -210,17 +210,19 @@ void desenharHUD(Jogo *jogo) {
     const char *textoAndar = TextFormat("ANDAR %d/%d", jogo->andarAtual, TOTAL_ANDARES);
     DrawText(textoAndar, (int)x, linha1, fonte, WHITE);
     x += (float)MeasureText(textoAndar, fonte) + espaco;
+    
+    // Carga atual da lanterna (0 a 100%)
+    float progresso = (float)jogo->jogador.bateria / 100.0f;
+    if (progresso < 0.0f) progresso = 0.0f;
+    if (progresso > 1.0f) progresso = 1.0f;
 
-    // Baterias coletadas neste andar (total do andar - as que ainda estao no mapa)
-    int total = jogo->totalItensAndar;
-    int coletadas = total - contar_itens(jogo->itens);
-    float progresso = (total > 0) ? (float)coletadas / (float)total : 0.0f;
     float alturaIcone = tamanhoFonte * 0.8f;
     desenharIconeBateria(x, meioLinha1 - alturaIcone / 2.0f, alturaIcone * 1.6f, alturaIcone, progresso, escala);
     x += alturaIcone * 1.6f + alturaIcone * 0.2f + 8.0f * escala;
-    const char *textoBaterias = TextFormat("%d/%d", coletadas, total);
+    const char *textoBaterias = TextFormat("%d%%", jogo->jogador.bateria);
     DrawText(textoBaterias, (int)x, linha1, fonte, WHITE);
     x += (float)MeasureText(textoBaterias, fonte) + espaco;
+
 
     // Pendrive: verde quando o jogador ja ganhou do professor, cinza antes
     Color corPendrive = jogo->jogador.temPendrive ? GREEN : GRAY;
@@ -304,4 +306,14 @@ void desenharTelaPausa(void) {
     textoCentralizado("PAUSADO", meio - (int)(50 * escala), fonteEscalada(60, escala), COR_HUD_LINHA);
     textoCentralizado("Pressione P para continuar", meio + (int)(25 * escala), fonteEscalada(22, escala), RAYWHITE);
     textoCentralizado("ESC: sair do jogo", meio + (int)(58 * escala), fonteEscalada(16, escala), GRAY);
+}
+
+void desenharTelaGameOver(void) {
+    float escala = hudEscala();
+    int meio = GetScreenHeight() / 2;
+
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.80f));
+    textoCentralizado("GAME OVER", meio - (int)(60 * escala), fonteEscalada(60, escala), COR_VIDA);
+    textoCentralizado("Os robôs destruíram seus arquivos do TCC!", meio + (int)(10 * escala), fonteEscalada(22, escala), RAYWHITE);
+    textoCentralizado("Pressione R para tentar novamente ou ESC para sair", meio + (int)(50 * escala), fonteEscalada(18, escala), LIGHTGRAY);
 }
