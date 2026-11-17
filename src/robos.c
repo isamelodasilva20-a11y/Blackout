@@ -289,34 +289,43 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
 
             if (atual->estado == ESTADO_FUGINDO || (atual == roboQueBateu && passosRecuo > 0)) {
                 proximaCasa = calcularPassoFuga(&jogo->mapa, atual, jogo->jogador.posicao);
-            } else {
-                Posicao alvo = jogo->jogador.posicao;
-
-                if (atual->tipo == ROBO_TEMPORIZADOR) {
-                    if (jogo->professor.posicao.linha >= 0 && jogo->professor.posicao.coluna >= 0) {
-                        alvo = jogo->professor.posicao;
-                    }
-                } else if (atual->tipo == ROBO_INTERCEPTADOR) {
-                    Posicao alvoIntercept = jogo->jogador.posicao;
-                    switch (jogo->jogador.direcao) {
-                        case DIR_CIMA:     alvoIntercept.linha -= 2; break;
-                        case DIR_BAIXO:    alvoIntercept.linha += 2; break;
-                        case DIR_ESQUERDA: alvoIntercept.coluna -= 2; break;
-                        case DIR_DIREITA:  alvoIntercept.coluna += 2; break;
-                    }
-                    if (casaLivreParaRobo(&jogo->mapa, alvoIntercept.linha, alvoIntercept.coluna, alvoIntercept)) {
-                        alvo = alvoIntercept;
-                    }
+            } else if (atual->tipo == ROBO_TEMPORIZADOR) {
+                // Robo roxo vai direto atras do professor
+                if (jogo->professor.posicao.linha >= 0 && jogo->professor.posicao.coluna >= 0) {
+                    proximaCasa = calcularProximoPassoBFS(&jogo->mapa, atual->posicao, jogo->professor.posicao);
                 }
+            } else {
+                // Calcula a distancia em casas entre o robo e o aluno
+                int distLinha = abs(atual->posicao.linha - jogo->jogador.posicao.linha);
+                int distColuna = abs(atual->posicao.coluna - jogo->jogador.posicao.coluna);
+                int distanciaAluno = distLinha + distColuna;
 
-                proximaCasa = calcularProximoPassoBFS(&jogo->mapa, atual->posicao, alvo);
+                if (distanciaAluno <= 8) {
+                    // Aluno por perto: persegue
+                    Posicao alvo = jogo->jogador.posicao;
 
-                // Fallback caso o ponto de interceptacao esteja inacessivel
-                if (proximaCasa.linha == atual->posicao.linha &&
-                    proximaCasa.coluna == atual->posicao.coluna &&
-                    (alvo.linha != jogo->jogador.posicao.linha || alvo.coluna != jogo->jogador.posicao.coluna) &&
-                    atual->tipo != ROBO_TEMPORIZADOR) {
-                    proximaCasa = calcularProximoPassoBFS(&jogo->mapa, atual->posicao, jogo->jogador.posicao);
+                    if (atual->tipo == ROBO_INTERCEPTADOR) {
+                        Posicao alvoIntercept = jogo->jogador.posicao;
+                        switch (jogo->jogador.direcao) {
+                            case DIR_CIMA:     alvoIntercept.linha -= 2; break;
+                            case DIR_BAIXO:    alvoIntercept.linha += 2; break;
+                            case DIR_ESQUERDA: alvoIntercept.coluna -= 2; break;
+                            case DIR_DIREITA:  alvoIntercept.coluna += 2; break;
+                        }
+                        if (casaLivreParaRobo(&jogo->mapa, alvoIntercept.linha, alvoIntercept.coluna, alvoIntercept)) {
+                            alvo = alvoIntercept;
+                        }
+                    }
+
+                    proximaCasa = calcularProximoPassoBFS(&jogo->mapa, atual->posicao, alvo);
+
+                    if (proximaCasa.linha == atual->posicao.linha &&
+                        proximaCasa.coluna == atual->posicao.coluna) {
+                        proximaCasa = calcularProximoPassoBFS(&jogo->mapa, atual->posicao, jogo->jogador.posicao);
+                    }
+                } else {
+                    // Aluno longe: sai da sala e patrulha os corredores
+                    proximaCasa = calcularPassoPatrulha(&jogo->mapa, atual);
                 }
             }
 
