@@ -90,12 +90,13 @@ int main(void) {
         if (IsKeyPressed(KEY_F11)) {
             ToggleBorderlessWindowed();
         }
-
+        // --- Cronometro: soma o tempo de cada quadro ate o jogador vencer ---
         // --- P pausa e continua (so durante o jogo, nao no quiz nem no fim) ---
         if (IsKeyPressed(KEY_P) && !venceu && jogo.telaAtual == TELA_NORMAL) {
             pausado = !pausado;
         }
 
+        // --- Cronometro: soma o tempo de cada quadro ate o jogador vencer ou dar Game Over ---
         if (!venceu && !pausado && jogo.telaAtual != TELA_GAME_OVER) {
             jogo.tempoJogo += GetFrameTime();
         }
@@ -120,6 +121,23 @@ int main(void) {
         if (!venceu && !pausado && jogo.telaAtual == TELA_NORMAL) {
             tempoPasso += GetFrameTime();
 
+            float dt = GetFrameTime();
+
+            if (jogo.jogador.tempoLanterna > 0.0f) {
+                jogo.jogador.tempoLanterna -= dt;
+                jogo.jogador.bateria = (int)((jogo.jogador.tempoLanterna / 10.0f) * 100.0f);
+                if (jogo.jogador.tempoLanterna <= 0.0f) {
+                    jogo.jogador.tempoLanterna = 0.0f;
+                    jogo.jogador.bateria = 0;
+                }
+            }
+
+            if (jogo.jogador.tempoInvulneravel > 0.0f) {
+                jogo.jogador.tempoInvulneravel -= dt;
+                if (jogo.jogador.tempoInvulneravel < 0.0f) {
+                    jogo.jogador.tempoInvulneravel = 0.0f;
+                }
+            }
             // Atualizacao continua e fluida de todos os robos (estilo Pac-Man)
             robosAtualizarContinuo(&jogo, GetFrameTime());
             checarVitoriaDerrotaRobos(&jogo);
@@ -258,6 +276,17 @@ int main(void) {
             if (venceu) desenharTelaVitoria(&jogo);
 
             if (jogo.telaAtual == TELA_GAME_OVER) {
+                DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.80f));
+                const char *msgGO = "GAME OVER!";
+                int tamGO = 40;
+                DrawText(msgGO, (GetScreenWidth() - MeasureText(msgGO, tamGO)) / 2,
+                         GetScreenHeight() / 2 - 30, tamGO, RED);
+
+                const char *subGO = "Pressione ESC para sair";
+                int tamSub = 20;
+                DrawText(subGO, (GetScreenWidth() - MeasureText(subGO, tamSub)) / 2,
+                         GetScreenHeight() / 2 + 25, tamSub, LIGHTGRAY);
+            }
                 desenharTelaGameOver();
                 if (IsKeyPressed(KEY_R)) {
                     jogo.jogador.vidas = VIDAS_INICIAIS;

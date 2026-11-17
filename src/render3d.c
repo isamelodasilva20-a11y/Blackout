@@ -472,6 +472,77 @@ static void desenharCasa3D(Mapa *mapa, int i, int j) {
     if (c == 'C') desenharComputador3D(cx, cz, luzEm(cx, cz));
 }
 
+static void desenharRobos3D(Jogo *jogo, Camera3D camera) {
+    if (jogo == NULL) return;
+
+    Robo *r = jogo->robos;
+    while (r != NULL) {
+        if (r->estado == ESTADO_DESLIGADO) {
+            r = r->next;
+            continue;
+        }
+
+        float cx = r->posicaoReal.x + 0.5f;
+        float cz = r->posicaoReal.y + 0.5f;
+
+        float luz = luzEm(cx, cz);
+        if (luz <= 0.0f) {
+            r = r->next;
+            continue;
+        }
+
+        // Escolhe o sprite (Frente, Costas ou Lado) conforme o angulo para a camera
+        float toCamX = cam.atual.x - cx;
+        float toCamZ = cam.atual.z - cz;
+        float distCam = sqrtf(toCamX * toCamX + toCamZ * toCamZ);
+
+        int idxTex = 0;
+        float flipX = 1.0f;
+
+        if (distCam > 0.001f && (r->direcao.x != 0.0f || r->direcao.y != 0.0f)) {
+            toCamX /= distCam;
+            toCamZ /= distCam;
+
+            float dot = r->direcao.x * toCamX + r->direcao.y * toCamZ;
+            if (dot > 0.5f) {
+                idxTex = 0; // Frente
+            } else if (dot < -0.5f) {
+                idxTex = 1; // Costas
+            } else {
+                idxTex = 2; // Lado
+                float cross = r->direcao.x * toCamZ - r->direcao.y * toCamX;
+                flipX = (cross < 0.0f) ? -1.0f : 1.0f;
+            }
+        }
+
+        Texture2D tex;
+        Color corFallback;
+        if (r->tipo == ROBO_TEMPORIZADOR) {
+            tex = jogo->texRoboTemporizador[idxTex];
+            corFallback = PURPLE;
+        } else if (r->tipo == ROBO_PERSEGUIDOR) {
+            tex = jogo->texRoboPerseguidor[idxTex];
+            corFallback = ORANGE;
+        } else {
+            tex = jogo->texRoboInterceptador[idxTex];
+            corFallback = RED;
+        }
+
+        Color baseTint = (r->estado == ESTADO_FUGINDO) ? SKYBLUE : WHITE;
+        Color tint = escalarCor(baseTint, luz);
+
+        if (tex.id != 0) {
+            Vector3 posSprite = { cx, 0.45f, cz };
+            Rectangle srcRec = { 0.0f, 0.0f, (float)tex.width * flipX, (float)tex.height };
+            DrawBillboardRec(camera, tex, srcRec, posSprite, (Vector2){ 0.85f, 0.85f }, tint);
+        } else {
+            Color c = escalarCor((r->estado == ESTADO_FUGINDO) ? SKYBLUE : corFallback, luz);
+            DrawCylinder((Vector3){ cx, 0.0f, cz }, 0.22f, 0.22f, 0.7f, 16, c);
+        }
+
+        r = r->next;
+    }
+}
 // Monta a camera nos olhos do jogador e desenha, nesta ordem: cenario
 // (paredes, piso, teto, moveis), escada, professor e baterias
 void desenharCena3D(Jogo *jogo) {
@@ -513,6 +584,7 @@ void desenharCena3D(Jogo *jogo) {
         
         // Desenha as baterias em 3D centralizadas via itens.c utilizando a imagem 2D
         desenhar_item_3d(jogo, camera);
+        desenharRobos3D(jogo, camera);
 
     EndMode3D();
 }

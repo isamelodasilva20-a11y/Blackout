@@ -31,6 +31,8 @@ typedef struct Jogador{
     int vidas;            
     int pontos;           
     int bateria;
+    float tempoLanterna;
+    float tempoInvulneravel;
     int frame;
     float tempoInvulneravel;       
     bool temPendrive;  
@@ -78,6 +80,7 @@ typedef enum {
 typedef struct Robo {
     Posicao posicao;
     Posicao posicaoInicial;
+    Posicao posicaoAnterior;
     TipoRobo tipo;
     EstadoRobo estado;
 

@@ -1,11 +1,15 @@
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <math.h>
 #include "raylib.h"
-#include "jogo.h"
+#include "estrutura.h"
 #include "robos.h"
+#include "mapa.h"
 
-// Converte o Vector2 de direção no índice da imagem (0: Frente, 1: Costas, 2: Lado)
+Robo *roboQueBateu = NULL;
+int passosRecuo = 0;
+
+// Converte o Vector2 de direcao no indice da imagem (0: Frente, 1: Costas, 2: Lado)
 int obterIndiceDirecaoRobo(Vector2 direcao) {
     if (direcao.y < 0) return 1;  // Cima (Costas)
     if (direcao.x != 0) return 2; // Esquerda / Direita (Lado)
@@ -13,22 +17,28 @@ int obterIndiceDirecaoRobo(Vector2 direcao) {
 }
 
 void robosAdicionar(Robo **cabeca, Posicao posicao, TipoRobo tipo, int andar) {
-    Robo *novo = (Robo*)malloc(sizeof(Robo));
+    Robo *novo = (Robo *)malloc(sizeof(Robo));
     if (novo == NULL) return;
 
     novo->posicao = posicao;
     novo->posicaoInicial = posicao;
-    novo->posicaoReal = (Vector2){ (float)posicao.coluna, (float)posicao.linha }; // <--- VITAL
+    novo->posicaoAnterior = posicao;
+    novo->posicaoReal = (Vector2){ (float)posicao.coluna, (float)posicao.linha };
     novo->tipo = tipo;
-    novo->velocidade = 2.0f;
+    novo->estado = ESTADO_NORMAL;
+    novo->velocidade = 2.0f + (andar - 1) * 0.2f;
     novo->direcao = (Vector2){ 0, 0 };
     novo->tempoParalisado = 0.0f;
     novo->next = *cabeca;
     *cabeca = novo;
 }
+
 void robosLiberar(Robo **cabeca) {
-    if (cabeca == NULL) return;
+    roboQueBateu = NULL;
+    passosRecuo = 0;
     
+    if (cabeca == NULL) return;
+
     Robo *atual = *cabeca;
     while (atual != NULL) {
         Robo *temp = atual;
@@ -37,20 +47,125 @@ void robosLiberar(Robo **cabeca) {
     }
     *cabeca = NULL;
 }
-static int casaEhCaminhoValido(Mapa *mapa, int linha, int coluna) {
-    if (!mapa || !mapa->matriz) return 0;
+
+// Verifica se a casa e caminhavel respeitando paredes (#), mesas (M) e computadores (C)
+static bool casaLivreParaRobo(Mapa *mapa, int linha, int coluna, Posicao destinoPermitido) {
+    if (!mapa || !mapa->matriz) return false;
     if (linha < 0 || linha >= mapa->linhas || coluna < 0 || coluna >= mapa->colunas) {
-        return 0;
+        return false;
     }
-    char c = mapa->matriz[linha][coluna];
-    return (c != '#'); // Retorna 1 se NÃO for parede
+    if (linha == destinoPermitido.linha && coluna == destinoPermitido.coluna) {
+        return true;
+    }
+    return !mapaCasaBloqueada(mapa, linha, coluna);
+}
+
+// Busca em Largura (BFS): calcula o proximo passo do caminho mais curto
+static Posicao calcularProximoPassoBFS(Mapa *mapa, Posicao origem, Posicao destino) {
+    if (!mapa || !mapa->matriz) return origem;
+    if (origem.linha == destino.linha && origem.coluna == destino.coluna) return origem;
+
+    int linhas = mapa->linhas;
+    int colunas = mapa->colunas;
+    if (linhas <= 0 || colunas <= 0 || linhas > 256 || colunas > 256) return origem;
+
+    static bool visitado[256][256];
+    static Posicao pai[256][256];
+    static Posicao fila[256 * 256];
+
+    for (int i = 0; i < linhas; i++) {
+        for (int j = 0; j < colunas; j++) {
+            visitado[i][j] = false;
+        }
+    }
+
+    int inicio = 0, fim = 0;
+    visitado[origem.linha][origem.coluna] = true;
+    pai[origem.linha][origem.coluna] = origem;
+    fila[fim++] = origem;
+
+    int dL[4] = { -1, 1, 0, 0 };
+    int dC[4] = { 0, 0, -1, 1 };
+    bool encontrou = false;
+
+    while (inicio < fim) {
+        Posicao atual = fila[inicio++];
+
+        if (atual.linha == destino.linha && atual.coluna == destino.coluna) {
+            encontrou = true;
+            break;
+        }
+
+        for (int i = 0; i < 4; i++) {
+            int nL = atual.linha + dL[i];
+            int nC = atual.coluna + dC[i];
+
+            if (nL >= 0 && nL < linhas && nC >= 0 && nC < colunas && !visitado[nL][nC]) {
+                if (casaLivreParaRobo(mapa, nL, nC, destino)) {
+                    visitado[nL][nC] = true;
+                    pai[nL][nC] = atual;
+                    fila[fim++] = (Posicao){ nL, nC };
+                }
+            }
+        }
+    }
+
+    if (!encontrou) return origem;
+
+    Posicao passo = destino;
+    while (!(pai[passo.linha][passo.coluna].linha == origem.linha &&
+             pai[passo.linha][passo.coluna].coluna == origem.coluna)) {
+        passo = pai[passo.linha][passo.coluna];
+    }
+
+    return passo;
+}
+
+// Escolhe a direcao que mais afasta o robo do jogador
+static Posicao calcularPassoFuga(Mapa *mapa, Robo *robo, Posicao posJogador) {
+    Posicao dirs[4] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
+    Posicao melhor = robo->posicao;
+    float maiorDist = -1.0f;
+
+    for (int i = 0; i < 4; i++) {
+        int nL = robo->posicao.linha + dirs[i].linha;
+        int nC = robo->posicao.coluna + dirs[i].coluna;
+
+        if (casaLivreParaRobo(mapa, nL, nC, robo->posicao)) {
+            if (nL == robo->posicaoAnterior.linha && nC == robo->posicaoAnterior.coluna) {
+                continue;
+            }
+            float dL = (float)(posJogador.linha - nL);
+            float dC = (float)(posJogador.coluna - nC);
+            float dist = dL * dL + dC * dC;
+
+            if (dist > maiorDist) {
+                maiorDist = dist;
+                melhor = (Posicao){ nL, nC };
+            }
+        }
+    }
+
+    // Se entrou em um beco ou sala sem saida, permite dar meia-volta pela casa anterior
+    if (melhor.linha == robo->posicao.linha && melhor.coluna == robo->posicao.coluna) {
+        if (casaLivreParaRobo(mapa, robo->posicaoAnterior.linha, robo->posicaoAnterior.coluna, robo->posicao)) {
+            melhor = robo->posicaoAnterior;
+        }
+    }
+
+    return melhor;
 }
 
 void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
     if (jogo == NULL) return;
 
+    bool lanternaAtiva = (jogo->jogador.tempoLanterna > 0.0f && jogo->jogador.bateria > 0);
+
     Robo *atual = jogo->robos;
     while (atual != NULL) {
+        if (atual->estado == ESTADO_DESLIGADO) {
+            atual = atual->next;
+            continue;
         // Se o robô estiver paralisado pela lanterna, apenas desconta o tempo e não anda
         if (atual->tempoParalisado > 0.0f) {
             atual->tempoParalisado -= deltaTime;
@@ -85,12 +200,11 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
             }
         }
 
-        // Se a posição do alvo for parede ou fora do mapa, fallback para o jogador
-        if (!casaEhCaminhoValido(&jogo->mapa, alvo.linha, alvo.coluna)) {
-            alvo = jogo->jogador.posicao;
+        // Laranja e Vermelho recuam se a lanterna tiver bateria, e perseguem se estiver sem
+        if (atual->tipo == ROBO_PERSEGUIDOR || atual->tipo == ROBO_INTERCEPTADOR) {
+            atual->estado = lanternaAtiva ? ESTADO_FUGINDO : ESTADO_NORMAL;
         }
 
-        // Verifica se chegou ao centro do ladrilho atual para escolher o próximo destino
         float distDestinoX = (float)atual->posicao.coluna - atual->posicaoReal.x;
         float distDestinoY = (float)atual->posicao.linha - atual->posicaoReal.y;
         float distRestante = sqrtf(distDestinoX * distDestinoX + distDestinoY * distDestinoY);
@@ -99,48 +213,73 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
             atual->posicaoReal.x = (float)atual->posicao.coluna;
             atual->posicaoReal.y = (float)atual->posicao.linha;
 
-            Posicao dirs[4] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} }; // Cima, Baixo, Esquerda, Direita
-            Posicao melhorProxima = atual->posicao;
-            float menorDistancia = 999999.0f;
-
-            for (int i = 0; i < 4; i++) {
-                int proxLinha = atual->posicao.linha + dirs[i].linha;
-                int proxColuna = atual->posicao.coluna + dirs[i].coluna;
-
-                // Não deixa o robô voltar exatamente para trás de onde acabou de vir (evita oscilação/vibração)
-                int veioDeLinha = (int)(atual->posicaoReal.x - atual->direcao.x + 0.5f);
-                int veioDeColuna = (int)(atual->posicaoReal.y - atual->direcao.y + 0.5f);
-
-                if (casaEhCaminhoValido(&jogo->mapa, proxLinha, proxColuna)) {
-                    float dLinha = (float)(alvo.linha - proxLinha);
-                    float dColuna = (float)(alvo.coluna - proxColuna);
-                    float distAteAlvo = dLinha * dLinha + dColuna * dColuna; // Distância ao quadrado
-
-                    // Penaliza levemente voltar para a casa anterior para evitar travamento em 180°
-                    if (proxLinha == veioDeLinha && proxColuna == veioDeColuna) {
-                        distAteAlvo += 2.0f;
-                    }
-
-                    if (distAteAlvo < menorDistancia) {
-                        menorDistancia = distAteAlvo;
-                        melhorProxima.linha = proxLinha;
-                        melhorProxima.coluna = proxColuna;
-                    }
+            if (atual == roboQueBateu && passosRecuo > 0) {
+                passosRecuo--;
+                if (passosRecuo == 0) {
+                    roboQueBateu = NULL;
+                    jogo->jogador.tempoInvulneravel = 0.0f;
                 }
             }
 
-            atual->posicao = melhorProxima;
+            Posicao proximaCasa = atual->posicao;
+
+            if (atual->estado == ESTADO_FUGINDO || (atual == roboQueBateu && passosRecuo > 0)) {
+                proximaCasa = calcularPassoFuga(&jogo->mapa, atual, jogo->jogador.posicao);
+            } else {
+                Posicao alvo = jogo->jogador.posicao;
+
+                if (atual->tipo == ROBO_TEMPORIZADOR) {
+                    if (jogo->professor.posicao.linha >= 0 && jogo->professor.posicao.coluna >= 0) {
+                        alvo = jogo->professor.posicao;
+                    }
+                } else if (atual->tipo == ROBO_INTERCEPTADOR) {
+                    Posicao alvoIntercept = jogo->jogador.posicao;
+                    switch (jogo->jogador.direcao) {
+                        case DIR_CIMA:     alvoIntercept.linha -= 2; break;
+                        case DIR_BAIXO:    alvoIntercept.linha += 2; break;
+                        case DIR_ESQUERDA: alvoIntercept.coluna -= 2; break;
+                        case DIR_DIREITA:  alvoIntercept.coluna += 2; break;
+                    }
+                    if (casaLivreParaRobo(&jogo->mapa, alvoIntercept.linha, alvoIntercept.coluna, alvoIntercept)) {
+                        alvo = alvoIntercept;
+                    }
+                }
+
+                proximaCasa = calcularProximoPassoBFS(&jogo->mapa, atual->posicao, alvo);
+
+                // Fallback caso o ponto de interceptacao esteja inacessivel
+                if (proximaCasa.linha == atual->posicao.linha &&
+                    proximaCasa.coluna == atual->posicao.coluna &&
+                    (alvo.linha != jogo->jogador.posicao.linha || alvo.coluna != jogo->jogador.posicao.coluna) &&
+                    atual->tipo != ROBO_TEMPORIZADOR) {
+                    proximaCasa = calcularProximoPassoBFS(&jogo->mapa, atual->posicao, jogo->jogador.posicao);
+                }
+            }
+
+            atual->posicaoAnterior = atual->posicao;
+            atual->posicao = proximaCasa;
         }
 
-        // Movimento suave continuo em direção à próxima casa válida
+        // Movimento suave continuo em direcao a proxima casa valida
         float dx = (float)atual->posicao.coluna - atual->posicaoReal.x;
         float dy = (float)atual->posicao.linha - atual->posicaoReal.y;
         float dist = sqrtf(dx * dx + dy * dy);
 
         if (dist > 0.001f) {
-            float vel = (atual->velocidade > 0.0f) ? atual->velocidade : 2.0f;
+            float vel = atual->velocidade;
+            if (vel <= 0.0f) {
+                vel = 2.0f;
+            }
+
+            if (atual->estado == ESTADO_FUGINDO) {
+                vel = vel * 0.85f;
+            } else if (atual == roboQueBateu && passosRecuo > 0) {
+                vel = vel * 1.35f;
+            }
+
             float passo = vel * deltaTime;
-            if (passo > dist) passo = dist;
+            if (passo > dist) 
+                passo = dist;
 
             atual->direcao = (Vector2){ dx / dist, dy / dist };
             atual->posicaoReal.x += atual->direcao.x * passo;
@@ -150,12 +289,17 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
         atual = atual->next;
     }
 }
-// Assinatura usando (Jogo *jogo, Vector2 origem, int tamanhoTile) para bater com robos.h
+
 void desenharRobos(Jogo *jogo, Vector2 origem, int tamanhoTile) {
     if (!jogo) return;
 
     Robo *r = jogo->robos;
     while (r != NULL) {
+        if (r->estado == ESTADO_DESLIGADO) {
+            r = r->next;
+            continue;
+        }
+
         int idxTex = obterIndiceDirecaoRobo(r->direcao);
         float escadaX = (r->direcao.x > 0) ? -1.0f : 1.0f;
 
@@ -178,7 +322,9 @@ void desenharRobos(Jogo *jogo, Vector2 origem, int tamanhoTile) {
             Rectangle destRec = { posTela.x, posTela.y, (float)tamanhoTile, (float)tamanhoTile };
             Vector2 origin = { 0.0f, 0.0f };
 
-            DrawTexturePro(tex, srcRec, destRec, origin, 0.0f, WHITE);
+            // Fica azulado enquanto recua por causa da bateria da lanterna
+            Color tint = (r->estado == ESTADO_FUGINDO) ? SKYBLUE : WHITE;
+            DrawTexturePro(tex, srcRec, destRec, origin, 0.0f, tint);
         }
 
         r = r->next;
