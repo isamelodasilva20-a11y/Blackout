@@ -11,3 +11,7 @@ blackout
 
 # Arquivos do sistema (macOS)
 .DS_Store
+
+# Arquivos do sistema (Windows)
+desktop.ini
+Thumbs.db

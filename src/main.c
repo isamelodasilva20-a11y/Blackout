@@ -295,6 +295,7 @@ int main(void) {
 
     // Limpeza: roda sempre, inclusive quando o andar não carregou
     liberar_todos_itens(&jogo.itens);
+    robosLiberar(&jogo.robos);
     mapaLiberar(&jogo.mapa);
 
     memRelatorio();
@@ -305,6 +306,7 @@ int main(void) {
             UnloadTexture(jogo.texturasProfessores[p][pose]);
         }
     }
+    jogoDescarregar(&jogo);
 
     CloseWindow();
     return carregou ? 0 : 1;
