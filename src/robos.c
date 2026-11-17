@@ -6,6 +6,9 @@
 #include "robos.h"
 #include "mapa.h"
 
+Robo *roboQueBateu = NULL;
+int passosRecuo = 0;
+
 // Converte o Vector2 de direcao no indice da imagem (0: Frente, 1: Costas, 2: Lado)
 int obterIndiceDirecaoRobo(Vector2 direcao) {
     if (direcao.y < 0) return 1;  // Cima (Costas)
@@ -30,6 +33,9 @@ void robosAdicionar(Robo **cabeca, Posicao posicao, TipoRobo tipo, int andar) {
 }
 
 void robosLiberar(Robo **cabeca) {
+    roboQueBateu = NULL;
+    passosRecuo = 0;
+    
     if (cabeca == NULL) return;
 
     Robo *atual = *cabeca;
@@ -174,9 +180,17 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
             atual->posicaoReal.x = (float)atual->posicao.coluna;
             atual->posicaoReal.y = (float)atual->posicao.linha;
 
+            if (atual == roboQueBateu && passosRecuo > 0) {
+                passosRecuo--;
+                if (passosRecuo == 0) {
+                    roboQueBateu = NULL;
+                    jogo->jogador.tempoInvulneravel = 0.0f;
+                }
+            }
+
             Posicao proximaCasa = atual->posicao;
 
-            if (atual->estado == ESTADO_FUGINDO || jogo->jogador.tempoInvulneravel > 0.0f) {
+            if (atual->estado == ESTADO_FUGINDO || (atual == roboQueBateu && passosRecuo > 0)) {
                 proximaCasa = calcularPassoFuga(&jogo->mapa, atual, jogo->jogador.posicao);
             } else {
                 Posicao alvo = jogo->jogador.posicao;
