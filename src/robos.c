@@ -6,6 +6,47 @@
 #include "robos.h"
 #include "mapa.h"
 
+#define MAX_ROBOS_RECUO 32
+
+static Robo *robosEmRecuo[MAX_ROBOS_RECUO] = { 0 };
+static float tempoRecuoRobos[MAX_ROBOS_RECUO] = { 0 };
+
+static void iniciarRecuoRobo(Robo *robo, float duracao) {
+    int livre = -1;
+    for (int i = 0; i < MAX_ROBOS_RECUO; i++) {
+        if (robosEmRecuo[i] == robo) {
+            tempoRecuoRobos[i] = duracao;
+            return;
+        }
+        if (livre == -1 && (robosEmRecuo[i] == NULL || tempoRecuoRobos[i] <= 0.0f)) {
+            livre = i;
+        }
+    }
+    if (livre != -1) {
+        robosEmRecuo[livre] = robo;
+        tempoRecuoRobos[livre] = duracao;
+    }
+}
+
+static bool roboEstaRecuando(Robo *robo) {
+    for (int i = 0; i < MAX_ROBOS_RECUO; i++) {
+        if (robosEmRecuo[i] == robo && tempoRecuoRobos[i] > 0.0f) return true;
+    }
+    return false;
+}
+
+static void atualizarTimersRecuo(float deltaTime) {
+    for (int i = 0; i < MAX_ROBOS_RECUO; i++) {
+        if (robosEmRecuo[i] != NULL && tempoRecuoRobos[i] > 0.0f) {
+            tempoRecuoRobos[i] -= deltaTime;
+            if (tempoRecuoRobos[i] <= 0.0f) {
+                tempoRecuoRobos[i] = 0.0f;
+                robosEmRecuo[i] = NULL;
+            }
+        }
+    }
+}
+
 // Converte o Vector2 de direcao no indice da imagem (0: Frente, 1: Costas, 2: Lado)
 int obterIndiceDirecaoRobo(Vector2 direcao) {
     if (direcao.y < 0) return 1;  // Cima (Costas)
