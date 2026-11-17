@@ -6,47 +6,6 @@
 #include "robos.h"
 #include "mapa.h"
 
-#define MAX_ROBOS_RECUO 32
-
-static Robo *robosEmRecuo[MAX_ROBOS_RECUO] = { 0 };
-static float tempoRecuoRobos[MAX_ROBOS_RECUO] = { 0 };
-
-static void iniciarRecuoRobo(Robo *robo, float duracao) {
-    int livre = -1;
-    for (int i = 0; i < MAX_ROBOS_RECUO; i++) {
-        if (robosEmRecuo[i] == robo) {
-            tempoRecuoRobos[i] = duracao;
-            return;
-        }
-        if (livre == -1 && (robosEmRecuo[i] == NULL || tempoRecuoRobos[i] <= 0.0f)) {
-            livre = i;
-        }
-    }
-    if (livre != -1) {
-        robosEmRecuo[livre] = robo;
-        tempoRecuoRobos[livre] = duracao;
-    }
-}
-
-static bool roboEstaRecuando(Robo *robo) {
-    for (int i = 0; i < MAX_ROBOS_RECUO; i++) {
-        if (robosEmRecuo[i] == robo && tempoRecuoRobos[i] > 0.0f) return true;
-    }
-    return false;
-}
-
-static void atualizarTimersRecuo(float deltaTime) {
-    for (int i = 0; i < MAX_ROBOS_RECUO; i++) {
-        if (robosEmRecuo[i] != NULL && tempoRecuoRobos[i] > 0.0f) {
-            tempoRecuoRobos[i] -= deltaTime;
-            if (tempoRecuoRobos[i] <= 0.0f) {
-                tempoRecuoRobos[i] = 0.0f;
-                robosEmRecuo[i] = NULL;
-            }
-        }
-    }
-}
-
 // Converte o Vector2 de direcao no indice da imagem (0: Frente, 1: Costas, 2: Lado)
 int obterIndiceDirecaoRobo(Vector2 direcao) {
     if (direcao.y < 0) return 1;  // Cima (Costas)
@@ -55,7 +14,7 @@ int obterIndiceDirecaoRobo(Vector2 direcao) {
 }
 
 void robosAdicionar(Robo **cabeca, Posicao posicao, TipoRobo tipo, int andar) {
-    Robo *novo = (Robo*)malloc(sizeof(Robo));
+    Robo *novo = (Robo *)malloc(sizeof(Robo));
     if (novo == NULL) return;
 
     novo->posicao = posicao;
@@ -71,13 +30,8 @@ void robosAdicionar(Robo **cabeca, Posicao posicao, TipoRobo tipo, int andar) {
 }
 
 void robosLiberar(Robo **cabeca) {
-    for (int i = 0; i < MAX_ROBOS_RECUO; i++) {
-        robosEmRecuo[i] = NULL;
-        tempoRecuoRobos[i] = 0.0f;
-    }
-
     if (cabeca == NULL) return;
-    
+
     Robo *atual = *cabeca;
     while (atual != NULL) {
         Robo *temp = atual;
@@ -160,7 +114,7 @@ static Posicao calcularProximoPassoBFS(Mapa *mapa, Posicao origem, Posicao desti
     return passo;
 }
 
-// Escolhe a direcao que mais afasta o robo do jogador enquanto a lanterna tem bateria
+// Escolhe a direcao que mais afasta o robo do jogador
 static Posicao calcularPassoFuga(Mapa *mapa, Robo *robo, Posicao posJogador) {
     Posicao dirs[4] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
     Posicao melhor = robo->posicao;
@@ -197,7 +151,6 @@ static Posicao calcularPassoFuga(Mapa *mapa, Robo *robo, Posicao posJogador) {
 
 void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
     if (jogo == NULL) return;
-    atualizarTimersRecuo(deltaTime);
 
     bool lanternaAtiva = (jogo->jogador.tempoLanterna > 0.0f && jogo->jogador.bateria > 0);
 
@@ -217,14 +170,13 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
         float distDestinoY = (float)atual->posicao.linha - atual->posicaoReal.y;
         float distRestante = sqrtf(distDestinoX * distDestinoX + distDestinoY * distDestinoY);
 
-        
         if (distRestante < 0.05f) {
             atual->posicaoReal.x = (float)atual->posicao.coluna;
             atual->posicaoReal.y = (float)atual->posicao.linha;
 
             Posicao proximaCasa = atual->posicao;
 
-            if (atual->estado == ESTADO_FUGINDO || roboEstaRecuando(atual)) {
+            if (atual->estado == ESTADO_FUGINDO || jogo->jogador.tempoInvulneravel > 0.0f) {
                 proximaCasa = calcularPassoFuga(&jogo->mapa, atual, jogo->jogador.posicao);
             } else {
                 Posicao alvo = jogo->jogador.posicao;
@@ -267,8 +219,16 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
         float dist = sqrtf(dx * dx + dy * dy);
 
         if (dist > 0.001f) {
-            float vel = (atual->velocidade > 0.0f) ? atual->velocidade : 2.0f;
-            if (atual->estado == ESTADO_FUGINDO) vel *= 0.85f;
+            float vel = atual->velocidade;
+            if (vel <= 0.0f) {
+                vel = 2.0f;
+            }
+
+            if (atual->estado == ESTADO_FUGINDO) {
+                vel = vel * 0.85f;
+            } else if (jogo->jogador.tempoInvulneravel > 0.0f) {
+                vel = vel * 1.2f;
+            }
 
             float passo = vel * deltaTime;
             if (passo > dist) passo = dist;
@@ -335,52 +295,46 @@ void checarVitoriaDerrotaRobos(Jogo *jogo) {
 
         // 1) ROBO ROXO: Game Over imediato ao tocar no PROFESSOR
         if (atual->tipo == ROBO_TEMPORIZADOR) {
-            float dx = atual->posicaoReal.x - (float)jogo->professor.posicao.coluna;
-            float dy = atual->posicaoReal.y - (float)jogo->professor.posicao.linha;
-            float dist = sqrtf(dx * dx + dy * dy);
+            float dxProf = atual->posicaoReal.x - (float)jogo->professor.posicao.coluna;
+            float dyProf = atual->posicaoReal.y - (float)jogo->professor.posicao.linha;
+            float distProf = sqrtf(dxProf * dxProf + dyProf * dyProf);
 
-            int mesmaCasa = (atual->posicao.linha == jogo->professor.posicao.linha &&
-                             atual->posicao.coluna == jogo->professor.posicao.coluna);
+            int mesmaCasaProf = (atual->posicao.linha == jogo->professor.posicao.linha &&
+                                 atual->posicao.coluna == jogo->professor.posicao.coluna);
 
-            if (dist < 0.7f || mesmaCasa) {
+            if (distProf < 0.7f || mesmaCasaProf) {
                 jogo->telaAtual = TELA_GAME_OVER;
                 return;
             }
         }
-        
-        // 2) ROBOS LARANJA E VERMELHO: Interacao com o JOGADOR
-        else if (atual->tipo == ROBO_PERSEGUIDOR || atual->tipo == ROBO_INTERCEPTADOR) {
-            float dx = atual->posicaoReal.x - (float)jogo->jogador.posicao.coluna;
-            float dy = atual->posicaoReal.y - (float)jogo->jogador.posicao.linha;
-            float dist = sqrtf(dx * dx + dy * dy);
 
-            int mesmaCasa = (atual->posicao.linha == jogo->jogador.posicao.linha &&
-                             atual->posicao.coluna == jogo->jogador.posicao.coluna);
+        // 2) ROBOS: Interacao com o JOGADOR
+        float dx = atual->posicaoReal.x - (float)jogo->jogador.posicao.coluna;
+        float dy = atual->posicaoReal.y - (float)jogo->jogador.posicao.linha;
+        float dist = sqrtf(dx * dx + dy * dy);
 
-            if (dist < 0.7f || mesmaCasa) {
-                if (atual->estado == ESTADO_FUGINDO) {
-                    // Com bateria na lanterna: elimina o robo
-                    atual->estado = ESTADO_DESLIGADO;
-                    jogo->jogador.pontos += 100;
-                } else if (jogo->jogador.tempoInvulneravel <= 0.0f) {
-                    // Sem bateria na lanterna: tira 1 coracao
-                    jogo->jogador.vidas--;
+        int mesmaCasa = (atual->posicao.linha == jogo->jogador.posicao.linha &&
+                         atual->posicao.coluna == jogo->jogador.posicao.coluna);
 
-                    if (jogo->jogador.vidas <= 0) {
-                        jogo->jogador.vidas = 0;
-                        jogo->telaAtual = TELA_GAME_OVER;
-                        return;
-                    } else {
-                        // Invulnerabilidade temporaria e retorno do robo ao inicio
-                        jogo->jogador.tempoInvulneravel = 2.5f;
-                        atual->posicao = atual->posicaoInicial;
-                        atual->posicaoAnterior = atual->posicaoInicial;
-                        atual->posicaoReal = (Vector2){
-                            (float)atual->posicaoInicial.coluna,
-                            (float)atual->posicaoInicial.linha
-                        };
-                    }
+        if (dist < 0.75f || mesmaCasa) {
+            if (atual->estado == ESTADO_FUGINDO) {
+                // Com bateria na lanterna: elimina o robo
+                atual->estado = ESTADO_DESLIGADO;
+                jogo->jogador.pontos += 100;
+            } else if (jogo->jogador.tempoInvulneravel <= 0.0f) {
+                // Sem bateria na lanterna: tira 1 coracao imediatamente
+                jogo->jogador.vidas--;
+
+                if (jogo->jogador.vidas <= 0) {
+                    jogo->jogador.vidas = 0;
+                    jogo->telaAtual = TELA_GAME_OVER;
+                    return;
                 }
+
+                // Recua ~3 casas para tras por 1.3s e volta a perseguir
+                jogo->jogador.tempoInvulneravel = 1.3f;
+                atual->posicaoAnterior = atual->posicao;
+                atual->posicao = calcularPassoFuga(&jogo->mapa, atual, jogo->jogador.posicao);
             }
         }
 
