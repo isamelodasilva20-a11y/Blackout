@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stddef.h>
+#include <math.h>
 #include "raylib.h"
 #include "jogo.h"     // 1. jogo.h primeiro
 #include "hud.h"
@@ -111,6 +112,59 @@ static const char *formatarTempo(float segundos) {
 
 // ---------------------------------------------------------------------------
 
+static void desenharAlertaProximidade(Jogo *jogo) {
+    if (jogo == NULL || jogo->robos == NULL) return;
+
+    // Encontra a distancia do robo ativo mais proximo do jogador
+    float menorDist = 9999.0f;
+    Robo *r = jogo->robos;
+    while (r != NULL) {
+        if (r->estado != ESTADO_DESLIGADO) {
+            float dx = r->posicaoReal.x - (float)jogo->jogador.posicao.coluna;
+            float dy = r->posicaoReal.y - (float)jogo->jogador.posicao.linha;
+            float dist = sqrtf(dx * dx + dy * dy);
+            if (dist < menorDist) {
+                menorDist = dist;
+            }
+        }
+        r = r->next;
+    }
+
+    // Ativa o sensor quando algum robo esta a ate 8 casas de distancia
+    float raioAlerta = 8.0f;
+    if (menorDist > raioAlerta) return;
+
+    // 0.0 (longe) ate 1.0 (colado no jogador)
+    float intensidade = 1.0f - (menorDist / raioAlerta);
+    if (intensidade < 0.0f) intensidade = 0.0f;
+    if (intensidade > 1.0f) intensidade = 1.0f;
+
+    // Frequencia do pisca aumenta conforme a proximidade
+    float velocidadePisca = 4.0f + intensidade * 18.0f;
+    bool piscaAtivo = (sinf((float)GetTime() * velocidadePisca) > 0.0f);
+
+    Color corAlerta = YELLOW;
+    if (menorDist <= 2.5f) {
+        corAlerta = RED;
+    } else if (menorDist <= 5.0f) {
+        corAlerta = ORANGE;
+    }
+
+    int larguraBox = 240;
+    int alturaBox = 36;
+    int posX = (GetScreenWidth() - larguraBox) / 2;
+    int posY = 14;
+
+    DrawRectangle(posX, posY, larguraBox, alturaBox, Fade(BLACK, 0.75f));
+    DrawRectangleLines(posX, posY, larguraBox, alturaBox, piscaAtivo ? corAlerta : DARKGRAY);
+
+    // Luz circular piscando + texto de alerta
+    Color corLuz = piscaAtivo ? corAlerta : Fade(corAlerta, 0.2f);
+    DrawCircle(posX + 20, posY + alturaBox / 2, 7.0f, corLuz);
+
+    const char *texto = (menorDist <= 2.5f) ? "PERIGO: ROBO PERTO!" : "ALERTA DE PROXIMIDADE";
+    DrawText(texto, posX + 36, posY + 11, 14, piscaAtivo ? corAlerta : LIGHTGRAY);
+}
 // Barra de baixo com duas linhas:
 //   linha 1: vidas, andar, baterias, pendrive (esquerda) e cronometro (direita)
 //   linha 2: objetivo atual (esquerda) e controles do modo de visao (direita)
@@ -213,6 +267,7 @@ void desenharHUD(Jogo *jogo) {
     if (largura - (int)margem - larguraControles > fimObjetivo + (int)espaco) {
         DrawText(controles, largura - (int)margem - larguraControles, linha2, fontePequena, GRAY);
     }
+    desenharAlertaProximidade(jogo);
 }
 
 // Escreve um texto centralizado na horizontal
