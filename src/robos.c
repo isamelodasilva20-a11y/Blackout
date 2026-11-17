@@ -217,13 +217,14 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
         float distDestinoY = (float)atual->posicao.linha - atual->posicaoReal.y;
         float distRestante = sqrtf(distDestinoX * distDestinoX + distDestinoY * distDestinoY);
 
+        
         if (distRestante < 0.05f) {
             atual->posicaoReal.x = (float)atual->posicao.coluna;
             atual->posicaoReal.y = (float)atual->posicao.linha;
 
             Posicao proximaCasa = atual->posicao;
 
-            if (atual->estado == ESTADO_FUGINDO) {
+            if (atual->estado == ESTADO_FUGINDO || roboEstaRecuando(atual)) {
                 proximaCasa = calcularPassoFuga(&jogo->mapa, atual, jogo->jogador.posicao);
             } else {
                 Posicao alvo = jogo->jogador.posicao;
