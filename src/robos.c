@@ -240,12 +240,13 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
 
             if (atual->estado == ESTADO_FUGINDO) {
                 vel = vel * 0.85f;
-            } else if (jogo->jogador.tempoInvulneravel > 0.0f) {
-                vel = vel * 1.2f;
+            } else if (atual == roboQueBateu && passosRecuo > 0) {
+                vel = vel * 1.35f;
             }
 
             float passo = vel * deltaTime;
-            if (passo > dist) passo = dist;
+            if (passo > dist) 
+                passo = dist;
 
             atual->direcao = (Vector2){ dx / dist, dy / dist };
             atual->posicaoReal.x += atual->direcao.x * passo;
