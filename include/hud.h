@@ -12,19 +12,22 @@ struct Mapa;
 #define HUD_ALTURA_BASE  60  
 
 float hudEscala(void);
+
 int hudAlturaBarra(void);
 
 // Usamos "struct Mapa" e "struct Jogo" aqui para evitar qualquer conflito
 void hudLayoutMapa(struct Mapa *mapa, Vector2 *origem, int *tamanhoCasa);
+
 void desenharHUD(struct Jogo *jogo);
-void desenharTelaVitoria(struct Jogo *jogo);
+
+void desenharTelaVitoria(struct Jogo *jogo, EntradaRanking ranking[], int totalRanking);
 
 // Escurece o jogo e mostra "PAUSADO" por cima (o main chama enquanto a pausa durar)
 void desenharTelaPausa(void);
 
 // Tela inicial com a historia do jogo (telainicial.c). So volta quando o
 // jogador aperta ENTER/ESPACO ou fecha a janela.
-void telaInicialMostrar(void);
+void telaInicialMostrar(char *nomeJogador, int maxChars);
 
 void desenharTelaGameOver(void);
 

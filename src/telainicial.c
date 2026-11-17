@@ -1,5 +1,6 @@
 #include <math.h>
 #include <string.h>
+#include "estrutura.h"
 #include "raylib.h"
 #include "hud.h"
 
@@ -108,7 +109,8 @@ static void textoCentralizado(const char *texto, int centroX, int y, int fonte, 
 
 // ---- Desenho ---------------------------------------------------------------
 
-static void desenharTela(const Lampada *lampada, float tempo) {
+// Adicione os parâmetros (const char *nomeJogador, float tempo) em desenharTela:
+static void desenharTela(const Lampada *lampada, float tempo, const char *nomeJogador) {
     int largura = GetScreenWidth(), altura = GetScreenHeight();
     float e = hudEscala();
     float luz = lampada->brilho;
@@ -116,51 +118,68 @@ static void desenharTela(const Lampada *lampada, float tempo) {
 
     ClearBackground(COR_FUNDO);
 
-    // Luminaria no teto: uma barra e o clarao dela, que some quando a luz falha
+    // Luminaria no teto
     int barra = (int)(260.0f * e);
     DrawCircleGradient((Vector2){ (float)cx, 0.0f }, (float)altura * 0.75f, Fade(COR_LARANJA2, 0.22f * luz), Fade(COR_FUNDO, 0.0f));
     DrawRectangle(cx - barra / 2, (int)(14.0f * e), barra, (int)(6.0f * e), iluminar(COR_CLARO, 0.25f + 0.75f * luz));
 
-    // Titulo. Durante a falha ele "treme": uma copia laranja escura deslocada
+    // Titulo
     int fonteTitulo = (int)(80.0f * e);
-    int yTitulo = (int)(44.0f * e);
+    int yTitulo = (int)(36.0f * e);
     if (luz < 0.6f) {
         int desvio = GetRandomValue(-6, 6);
         textoCentralizado("BLACKOUT", cx + desvio, yTitulo + GetRandomValue(-2, 2), fonteTitulo, Fade(COR_LARANJA2, 0.6f));
     }
     textoCentralizado("BLACKOUT", cx, yTitulo, fonteTitulo, iluminar(COR_LARANJA, 0.15f + 0.85f * luz));
-    textoCentralizado("C E S A R   S C H O O L", cx, yTitulo + fonteTitulo + (int)(4.0f * e), (int)(20.0f * e),
+    textoCentralizado("C E S A R   S C H O O L", cx, yTitulo + fonteTitulo + (int)(4.0f * e), (int)(18.0f * e),
                       iluminar(COR_CINZA, 0.3f + 0.7f * luz));
 
-    // Historia, escrita letra por letra (maquina de escrever)
-    int fonte = (int)(22.0f * e);
-    int espaco = (int)(26.0f * e);
-    int y = yTitulo + fonteTitulo + (int)(48.0f * e);
+    // Historia (espacamento levemente ajustado para caber a caixa de nome)
+    int fonte = (int)(20.0f * e);
+    int espaco = (int)(23.0f * e);
+    int y = yTitulo + fonteTitulo + (int)(38.0f * e);
     int letras = (int)(tempo * LETRAS_POR_SEGUNDO);
     char linha[160];
     for (int k = 0; k < TOTAL_LINHAS && letras > 0; k++) {
         primeirasLetras(HISTORIA[k], letras, linha, (int)sizeof(linha));
         letras -= contarLetras(HISTORIA[k]);
-        // O aviso dos robos fica em laranja; o resto em claro
         Color cor = (strstr(HISTORIA[k], "robôs") != NULL || strstr(HISTORIA[k], "hackers para") != NULL) ? COR_LARANJA : COR_CLARO;
         textoCentralizado(linha, cx, y + k * espaco, fonte, iluminar(cor, 0.35f + 0.65f * luz));
     }
 
-    // "ENTER para comecar" piscando devagar (nao depende da lampada, para dar para ler)
+    // --- CAMPO DE NOME DO JOGADOR ---
+    int largCaixa = (int)(340.0f * e);
+    int altCaixa  = (int)(40.0f * e);
+    int xCaixa    = cx - largCaixa / 2;
+    int yCaixa    = altura - (int)(145.0f * e);
+
+    textoCentralizado("Digite seu nome para o Ranking:", cx, yCaixa - (int)(24.0f * e), (int)(18.0f * e), COR_CLARO);
+    DrawRectangle(xCaixa, yCaixa, largCaixa, altCaixa, (Color){ 35, 38, 48, 255 });
+    DrawRectangleLinesEx((Rectangle){ (float)xCaixa, (float)yCaixa, (float)largCaixa, (float)altCaixa }, 2.0f, COR_LARANJA);
+
+    // Cursor piscando "_"
+    const char *cursor = (((int)(tempo * 2.5f)) % 2 == 0) ? "_" : "";
+    const char *textoExibido = (strlen(nomeJogador) > 0)
+        ? TextFormat("%s%s", nomeJogador, cursor)
+        : TextFormat("Seu nome%s", cursor);
+    Color corTextoNome = (strlen(nomeJogador) > 0) ? WHITE : COR_CINZA;
+    textoCentralizado(textoExibido, cx, yCaixa + (int)(9.0f * e), (int)(22.0f * e), corTextoNome);
+
+    // "ENTER para comecar"
     float pisca = 0.55f + 0.45f * sinf(tempo * 4.0f);
-    textoCentralizado("Pressione ENTER para começar", cx, altura - (int)(86.0f * e), (int)(26.0f * e), Fade(COR_LARANJA, pisca));
-    textoCentralizado("WASD ou setas: andar     V: visão 3D     F11: tela cheia", cx, altura - (int)(44.0f * e),
+    textoCentralizado("Pressione ENTER para começar", cx, altura - (int)(82.0f * e), (int)(24.0f * e), Fade(COR_LARANJA, pisca));
+    textoCentralizado("WASD ou setas: andar     V: visão 3D     F11: tela cheia", cx, altura - (int)(40.0f * e),
                       (int)(16.0f * e), COR_CINZA);
 
-    // Riscos horizontais bem leves (cara de monitor antigo) e a penumbra da falha
+    // Riscos horizontais e penumbra
     for (int ly = 0; ly < altura; ly += 4) DrawRectangle(0, ly, largura, 1, Fade(BLACK, 0.18f));
     DrawRectangle(0, 0, largura, altura, Fade(BLACK, 0.45f * (1.0f - luz)));
 }
 
-// Mostra a tela inicial ate o jogador apertar ENTER/ESPACO ou fechar a janela
-void telaInicialMostrar(void) {
+void telaInicialMostrar(char *nomeJogador, int maxChars) {
     Lampada lampada = { 1.0f, 0.5f, 0 };
     float tempo = 0.0f;
+    int tamanhoAtual = (int)strlen(nomeJogador);
 
     while (!WindowShouldClose()) {
         float dt = GetFrameTime();
@@ -168,10 +187,29 @@ void telaInicialMostrar(void) {
         atualizarLampada(&lampada, dt);
 
         if (IsKeyPressed(KEY_F11)) ToggleBorderlessWindowed();
-        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER) || IsKeyPressed(KEY_SPACE)) break;
+
+        // Captura caracteres digitados (evita ';' para não quebrar o formato do arquivo)
+        int tecla = GetCharPressed();
+        while (tecla > 0) {
+            if ((tecla >= 32) && (tecla <= 125) && (tecla != ';') && (tamanhoAtual < maxChars - 1)) {
+                nomeJogador[tamanhoAtual] = (char)tecla;
+                nomeJogador[tamanhoAtual + 1] = '\0';
+                tamanhoAtual++;
+            }
+            tecla = GetCharPressed();
+        }
+
+        // Apagar com Backspace
+        if (IsKeyPressed(KEY_BACKSPACE) && tamanhoAtual > 0) {
+            tamanhoAtual--;
+            nomeJogador[tamanhoAtual] = '\0';
+        }
+
+        // Só inicia com ENTER (espaço agora funciona para digitar nome composto!)
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) break;
 
         BeginDrawing();
-            desenharTela(&lampada, tempo);
+            desenharTela(&lampada, tempo, nomeJogador);
         EndDrawing();
     }
 }
