@@ -196,10 +196,12 @@ void desenharHUD(Jogo *jogo) {
     float x = margem;
 
     // Vidas: um coracao por vida inicial; as que ja foram perdidas ficam cinza
+   // Vidas: desenha apenas os coracoes restantes (mantendo o espaco fixo do HUD)
     float raioCoracao = tamanhoFonte * 0.45f;
     for (int i = 0; i < VIDAS_INICIAIS; i++) {
-        Color cor = (i < jogo->jogador.vidas) ? COR_VIDA : COR_VIDA_PERDIDA;
-        desenharCoracao(x + raioCoracao, meioLinha1, raioCoracao, cor);
+        if (i < jogo->jogador.vidas) {
+            desenharCoracao(x + raioCoracao, meioLinha1, raioCoracao, COR_VIDA);
+        }
         x += raioCoracao * 2.0f + 6.0f * escala;
     }
     x += espaco;
