@@ -455,7 +455,7 @@ void checarVitoriaDerrotaRobos(Jogo *jogo) {
             float dist = sqrtf(dx * dx + dy * dy);
 
             if (dist <= 0.65f) {
-                if (atual->tipo == ROBO_CINZA) {
+                if (atual->tipo == ROBO_CINZA && jogo->andarAtual == 3) {
                     jogo->jogador.tempoCurtoCircuito = 4.0f;
                 }
 
