@@ -68,8 +68,8 @@ typedef struct {
 typedef enum {
     ROBO_TEMPORIZADOR,     
     ROBO_PERSEGUIDOR,   
-    ROBO_INTERCEPTADOR  
-    ROBO_CINZA;
+    ROBO_INTERCEPTADOR,  
+    ROBO_CINZA
 } TipoRobo;
 
 typedef enum {

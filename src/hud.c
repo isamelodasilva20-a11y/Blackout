@@ -195,8 +195,7 @@ void desenharHUD(Jogo *jogo) {
     // ---- Linha 1, da esquerda para a direita ----
     float x = margem;
 
-    // Vidas: um coracao por vida inicial; as que ja foram perdidas ficam cinza
-   // Vidas: desenha apenas os coracoes restantes (mantendo o espaco fixo do HUD)
+    // Vidas: desenha apenas os coracoes restantes (mantendo o espaco fixo do HUD)
     float raioCoracao = tamanhoFonte * 0.45f;
     for (int i = 0; i < VIDAS_INICIAIS; i++) {
         if (i < jogo->jogador.vidas) {
@@ -222,7 +221,6 @@ void desenharHUD(Jogo *jogo) {
     const char *textoBaterias = TextFormat("%d%%", jogo->jogador.bateria);
     DrawText(textoBaterias, (int)x, linha1, fonte, WHITE);
     x += (float)MeasureText(textoBaterias, fonte) + espaco;
-
 
     // Pendrive: verde quando o jogador ja ganhou do professor, cinza antes
     Color corPendrive = jogo->jogador.temPendrive ? GREEN : GRAY;
@@ -271,13 +269,25 @@ void desenharHUD(Jogo *jogo) {
     if (largura - (int)margem - larguraControles > fimObjetivo + (int)espaco) {
         DrawText(controles, largura - (int)margem - larguraControles, linha2, fontePequena, GRAY);
     }
-    // Flash vermelho rapido na tela ao tomar dano de um robo
-    if (jogo->jogador.tempoInvulneravel > 2.65f) {
+
+    // Efeito azul e aviso na tela quando tomar curto-circuito do robo cinza no 3o andar
+    if (jogo->jogador.tempoCurtoCircuito > 0.0f) {
+        DrawRectangle(0, 0, largura, GetScreenHeight(), Fade(SKYBLUE, 0.22f));
+
+        const char *aviso = "CURTO-CIRCUITO! CONTROLES INVERTIDOS!";
+        int larguraAviso = MeasureText(aviso, fonte);
+        int posXAviso = (largura - larguraAviso) / 2;
+        int posYAviso = (int)(58.0f * escala);
+
+        DrawRectangle(posXAviso - 10, posYAviso - 4, larguraAviso + 20, fonte + 8, Fade(BLACK, 0.75f));
+        DrawText(aviso, posXAviso, posYAviso, fonte, SKYBLUE);
+    } else if (jogo->jogador.tempoInvulneravel > 2.65f) {
+        // Flash vermelho rapido na tela ao tomar dano de um robo
         DrawRectangle(0, 0, largura, GetScreenHeight(), Fade(RED, 0.28f));
     }
+
     desenharAlertaProximidade(jogo);
 }
-
 // Escreve um texto centralizado na horizontal
 static void textoCentralizado(const char *texto, int y, int tamanho, Color cor) {
     DrawText(texto, (GetScreenWidth() - MeasureText(texto, tamanho)) / 2, y, tamanho, cor);

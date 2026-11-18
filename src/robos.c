@@ -210,6 +210,13 @@ static void destruirBateriaNaPosicao(Item **itens, Posicao pos) {
 void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
     if (jogo == NULL) return;
 
+    if (jogo->jogador.tempoCurtoCircuito > 0.0f) {
+        jogo->jogador.tempoCurtoCircuito -= deltaTime;
+        if (jogo->jogador.tempoCurtoCircuito < 0.0f) {
+            jogo->jogador.tempoCurtoCircuito = 0.0f;
+        }
+    }
+
     bool lanternaAtiva = (jogo->jogador.tempoLanterna > 0.0f && jogo->jogador.bateria > 0);
 
     Robo *atual = jogo->robos;

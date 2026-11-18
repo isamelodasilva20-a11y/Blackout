@@ -7,6 +7,7 @@
 #include "itens.h"
 #include "professor.h"
 #include "jogador.h"
+#include "robos.h"
 #include "hud.h"
 
 // Medidas do mundo 3D (1.0 = tamanho de uma casa do mapa)
@@ -523,6 +524,9 @@ static void desenharRobos3D(Jogo *jogo, Camera3D camera) {
         } else if (r->tipo == ROBO_PERSEGUIDOR) {
             tex = jogo->texRoboPerseguidor[idxTex];
             corFallback = ORANGE;
+        } else if (r->tipo == ROBO_CINZA) {
+            tex = jogo->texRoboCinza[idxTex];
+            corFallback = GRAY;
         } else {
             tex = jogo->texRoboInterceptador[idxTex];
             corFallback = RED;
@@ -613,5 +617,6 @@ void desenharMinimapa(Jogo *jogo) {
     desenharSaida2D(&jogo->mapa, origem, t, jogo->professor.ajudado);
     desenhar_item(jogo, origem, t);
     desenhar_professor(jogo, origem, t);
+    desenharRobos(jogo, origem, t);
     desenharSetaJogador2D(&jogo->jogador, origem, t);
 }
