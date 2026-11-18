@@ -17,6 +17,11 @@ int main(void) {
     // e tudo (mapa, 3D, HUD e quiz) se ajusta ao novo tamanho
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(LARGURA_BASE, ALTURA_BASE, "Blackout");
+    InitAudioDevice();
+    Music musicaFundo = LoadMusicStream("imagens/musica/running_out_of_time.ogg");
+    musicaFundo.looping = true;
+    SetMusicVolume(musicaFundo, 0.45f);
+    PlayMusicStream(musicaFundo);
     SetWindowMinSize(LARGURA_BASE / 2, ALTURA_BASE / 2);
     SetTargetFPS(60);
 
@@ -86,13 +91,29 @@ int main(void) {
     int totalRanking = 0;
 
     if (carregou) telaInicialMostrar(jogo.jogador.nome, 32);
+    
+    InitAudioDevice();
+    Music musicaFundo = LoadMusicStream("imagens/musica/running_out_of_time.ogg");
+    musicaFundo.looping = true;
+    SetMusicVolume(musicaFundo, 0.45f);
+    PlayMusicStream(musicaFundo);
 
     while (carregou && !WindowShouldClose()) {
+        // --- Atualiza a musica de fundo e ajusta volume conforme a tela ---
+        UpdateMusicStream(musicaFundo);
+        if (pausado || jogo.telaAtual == TELA_GAME_OVER || venceu) {
+            SetMusicVolume(musicaFundo, 0.15f);
+        } else if (jogo.telaAtual == TELA_QUIZ) {
+            SetMusicVolume(musicaFundo, 0.25f);
+        } else {
+            SetMusicVolume(musicaFundo, 0.45f);
+        }
+
         // --- F11 alterna tela cheia (sem borda, na resolucao do monitor) ---
         if (IsKeyPressed(KEY_F11)) {
             ToggleBorderlessWindowed();
         }
-        // --- Cronometro: soma o tempo de cada quadro ate o jogador vencer ---
+
         // --- P pausa e continua (so durante o jogo, nao no quiz nem no fim) ---
         if (IsKeyPressed(KEY_P) && !venceu && jogo.telaAtual == TELA_NORMAL) {
             pausado = !pausado;
@@ -103,7 +124,6 @@ int main(void) {
             jogo.tempoJogo += GetFrameTime();
         }
 
-
         // --- V alterna a visão: 0 = 2D (de cima), 1 = 3D (primeira pessoa) ---
         if (IsKeyPressed(KEY_V)) {
             jogo.modoVisao = !jogo.modoVisao;
@@ -112,9 +132,6 @@ int main(void) {
         }
 
         // --- Professor ---
-        // Testado ANTES de ler as teclas: assim o quiz só abre no quadro seguinte
-        // ao passo, e a tecla usada para andar até o professor (A ou D) não é
-        // lida pelo quiz como resposta.
         if (!venceu && !pausado && jogo.telaAtual == TELA_NORMAL &&
             verificar_interacao_professor(&jogo.jogador, &jogo.professor)) {
             jogo.telaAtual = TELA_QUIZ;
@@ -123,9 +140,8 @@ int main(void) {
         }
 
         if (!venceu && !pausado && jogo.telaAtual == TELA_NORMAL) {
-            tempoPasso += GetFrameTime();
-
             float dt = GetFrameTime();
+            tempoPasso += dt;
 
             // --- Ativa a lanterna ao apertar L (se tiver bateria e ainda estiver desligada) ---
             if (IsKeyPressed(KEY_L) && jogo.jogador.bateria > 0 && jogo.jogador.tempoLanterna <= 0.0f) {
@@ -149,12 +165,21 @@ int main(void) {
                     jogo.jogador.tempoInvulneravel = 0.0f;
                 }
             }
+
+            // Desconta o tempo do curto-circuito (inversao de controles no 3o andar)
+            if (jogo.jogador.tempoCurtoCircuito > 0.0f) {
+                jogo.jogador.tempoCurtoCircuito -= dt;
+                if (jogo.jogador.tempoCurtoCircuito < 0.0f) {
+                    jogo.jogador.tempoCurtoCircuito = 0.0f;
+                }
+            }
+
             // Atualizacao continua e fluida de todos os robos (estilo Pac-Man)
-            robosAtualizarContinuo(&jogo, GetFrameTime());
+            robosAtualizarContinuo(&jogo, dt);
             checarVitoriaDerrotaRobos(&jogo);
          
             if (jogo.modoVisao == 0) {
-                // --- Controles 2D Contínuos (na main.c) ---
+                // --- Controles 2D Contínuos ---
                 int tentandoMover = (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP) ||
                                     IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN) ||
                                     IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT) ||
@@ -165,34 +190,26 @@ int main(void) {
 
                     if (tempoPasso >= INTERVALO_PASSO) {
                         tempoPasso = 0.0f;
-                        // Guarda o quadro antes do passo: o movimentar_jogador tambem mexe nele
                         int quadroAnterior = jogo.jogador.frame;
 
                         if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) {
-                            jogo.jogador.direcao = DIR_CIMA;
                             movimentar_jogador(&jogo.jogador, &jogo.mapa, DIR_CIMA);
                         }
                         else if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) {
-                            jogo.jogador.direcao = DIR_BAIXO;
                             movimentar_jogador(&jogo.jogador, &jogo.mapa, DIR_BAIXO);
                         }
                         else if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) {
-                            jogo.jogador.direcao = DIR_ESQUERDA;
                             movimentar_jogador(&jogo.jogador, &jogo.mapa, DIR_ESQUERDA);
                         }
                         else if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
-                            jogo.jogador.direcao = DIR_DIREITA;
                             movimentar_jogador(&jogo.jogador, &jogo.mapa, DIR_DIREITA);
                         }
 
-                        // Alterna entre o quadro 0 (parado) e o 1 (dando o passo). Na
-                        // folha de sprites as colunas 2 e 3 do perfil olham para o
-                        // lado contrario, e usa-las fazia o boneco andar de costas.
                         jogo.jogador.frame = (quadroAnterior == 0) ? 1 : 0;
                     }
                 } else {
                     jogo.jogador.frame = 0;
-                    tempoInativo += GetFrameTime();
+                    tempoInativo += dt;
 
                     if (tempoInativo >= 0.5f) {
                         jogo.jogador.direcao = DIR_BAIXO;
@@ -225,30 +242,6 @@ int main(void) {
                     }
                 }
             }
-
-
-            // Daqui para baixo vale para os dois modos: a lógica é a mesma
-            coletar_item(&jogo.itens, &jogo.jogador);
-
-            // --- Troca de andar ---
-            int naEscada = (jogo.jogador.posicao.linha == jogo.mapa.saida.linha &&
-                            jogo.jogador.posicao.coluna == jogo.mapa.saida.coluna);
-
-            // Muda de andar apenas se o professor foi ajudado E o jogador subiu na escada
-            if (jogo.professor.ajudado && naEscada) {
-                if (jogo.andarAtual < TOTAL_ANDARES) {
-                    if (!mapaCarregarAndar(&jogo, jogo.andarAtual + 1)) {
-                        carregou = 0; // erro no próximo andar: sai do loop e vai para a limpeza
-                        break;
-                    }
-                } else {
-                    venceu = 1;
-                    rankingSalvar(jogo.jogador.nome, jogo.tempoJogo);
-                    totalRanking = rankingCarregar(listaRanking, MAX_RANKING);
-
-                }
-            }
-        }
 
         // A câmera 3D desliza até a casa/direção nova do jogador
         if (jogo.modoVisao == 1) {
