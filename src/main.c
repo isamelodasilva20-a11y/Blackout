@@ -120,6 +120,8 @@ int main(void) {
         if (!venceu && !pausado && jogo.telaAtual == TELA_NORMAL &&
             verificar_interacao_professor(&jogo.jogador, &jogo.professor)) {
             jogo.telaAtual = TELA_QUIZ;
+            jogo.tempoFala = 0.0f;
+            jogo.respostaEscolhida = '\0';
         }
 
         if (!venceu && !pausado && jogo.telaAtual == TELA_NORMAL) {
@@ -244,8 +246,14 @@ int main(void) {
         }
 
         // A câmera 3D desliza até a casa/direção nova do jogador
-        if (jogo.modoVisao == 1) render3dAtualizarCamera(&jogo, GetFrameTime());
+        if (jogo.modoVisao == 1) {
+            render3dAtualizarCamera(&jogo, GetFrameTime());
+        }
 
+        if (jogo.telaAtual == TELA_QUIZ) {
+            jogo.tempoFala += GetFrameTime();
+        }
+        
         acumuladorTempo += GetFrameTime();
         if (acumuladorTempo >= 0.05f) {
             acumuladorTempo -= 0.05f;

@@ -115,51 +115,85 @@ void desenhar_quiz(Jogo *jogo) {
     // efeito de pause
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.7f));
 
-    // tela principal
-    int larguraModal = escalar(400, e);
-    int alturaModal = escalar(220, e);
-    int posX = (GetScreenWidth() - larguraModal) / 2;
-    int posY = (GetScreenHeight() - alturaModal) / 2;
+    // tela principal: professor à esquerda, aluno à direita e a caixa de fala no meio
+    int L = GetScreenWidth();
+    int A = GetScreenHeight();
+    float altPers = A * 0.45f;
+    Rectangle destProf  = { L * 0.03f, A - altPers - A * 0.05f, altPers, altPers };
+    Rectangle destAluno = { L - L * 0.03f - altPers, destProf.y, altPers, altPers };
+    float xCaixa = destProf.x + destProf.width + L * 0.02f;
+    Rectangle caixa = { xCaixa, A * 0.40f, destAluno.x - L * 0.02f - xCaixa, A * 0.50f };
 
-    DrawRectangle(posX, posY, larguraModal, alturaModal, DARKGRAY);
-    DrawRectangleLines(posX, posY, larguraModal, alturaModal, RAYWHITE);
+    // efeito de digitação: a pergunta aparece 40 letras por segundo; [Espaço] pula pro final
+    const char *pergunta = jogo->professor.pergunta;
+    int letras = (int)(jogo->tempoFala * 40);
+    bool terminou = letras >= (int)TextLength(pergunta);
+    if (!terminou && IsKeyPressed(KEY_SPACE)) {
+        jogo->tempoFala = 1000.0f;
+        terminou = true;
+    }
 
-    // nome do professor e pergunta
-    DrawText(jogo->professor.nome, posX + escalar(20, e), posY + escalar(15, e), fonteQuiz(20, e), YELLOW);
-    DrawText(jogo->professor.pergunta, posX + escalar(20, e), posY + escalar(50, e), fonteQuiz(16, e), WHITE);
+    // retrato do professor (pose 1 quando o jogador acerta)
+    int pose = (jogo->estadoFeedback == FEEDBACK_ACERTOU) ? 1 : 0;
+    Texture2D texProf = jogo->texturasProfessores[jogo->professor.id][pose];
+    Rectangle recProf = { 0, 0, (float)texProf.width, (float)texProf.height };
+    DrawTexturePro(texProf, recProf, destProf, (Vector2){ 0, 0 }, 0.0f, WHITE);
+
+    // aluno: um quadro do spritesheet (4x3); fica apagado enquanto o professor fala
+    float qL = jogo->texturaJogador.width / 4.0f;
+    float qA = jogo->texturaJogador.height / 3.0f;
+    Rectangle recAluno = { 0, qA, qL, qA };
+    Color corAluno = (jogo->estadoFeedback == FEEDBACK_NENHUM) ? GRAY : WHITE;
+    DrawTexturePro(jogo->texturaJogador, recAluno, destAluno, (Vector2){ 0, 0 }, 0.0f, corAluno);
+
+    // caixa de diálogo e margens do texto
+    DrawRectangleRounded(caixa, 0.1f, 8, Fade(BLACK, 0.85f));
+    DrawRectangleRoundedLinesEx(caixa, 0.1f, 8, 2.0f, RAYWHITE);
+    int mx = (int)caixa.x + escalar(20, e);
+    int my = (int)caixa.y + escalar(16, e);
+    int rodape = (int)(caixa.y + caixa.height) - escalar(28, e);
 
     if (jogo->estadoFeedback == FEEDBACK_NENHUM) {
-        // Mostra a instrução enquanto aguarda resposta
-        DrawText("Pressione [A], [B], [C] ou [D] para responder", posX + escalar(20, e), posY + escalar(190, e), fonteQuiz(12, e), LIGHTGRAY);
+        // nome do professor e pergunta
+        DrawText(TextFormat("%s:", jogo->professor.nome), mx, my, fonteQuiz(20, e), YELLOW);
+        DrawText(TextSubtext(pergunta, 0, letras), mx, my + escalar(34, e), fonteQuiz(18, e), WHITE);
 
-        // verifica a resposta do teclado
-        const char *respostaJogador = NULL;
-        if (IsKeyPressed(KEY_A)) respostaJogador = "A";
-        if (IsKeyPressed(KEY_B)) respostaJogador = "B";
-        if (IsKeyPressed(KEY_C)) respostaJogador = "C";
-        if (IsKeyPressed(KEY_D)) respostaJogador = "D";
+        if (terminou) {
+            // Mostra a instrução enquanto aguarda resposta
+            DrawText("Pressione [A], [B], [C] ou [D]", mx, rodape, fonteQuiz(14, e), LIGHTGRAY);
 
-        if (respostaJogador != NULL) {
-            jogo->tempoInicioFeedback = GetTime();
+            // verifica a resposta do teclado
+            const char *respostaJogador = NULL;
+            if (IsKeyPressed(KEY_A)) { respostaJogador = "A"; jogo->respostaEscolhida = 'A'; }
+            if (IsKeyPressed(KEY_B)) { respostaJogador = "B"; jogo->respostaEscolhida = 'B'; }
+            if (IsKeyPressed(KEY_C)) { respostaJogador = "C"; jogo->respostaEscolhida = 'C'; }
+            if (IsKeyPressed(KEY_D)) { respostaJogador = "D"; jogo->respostaEscolhida = 'D'; }
 
-            // compara a resposta com o gabarito
-            if (strcmp(respostaJogador, jogo->professor.resposta) == 0) {
-                jogo->estadoFeedback = FEEDBACK_ACERTOU;
-                concluir_ajuda_professor(&jogo->jogador, &jogo->professor);
-            } else {
-                jogo->estadoFeedback = FEEDBACK_ERROU;
+            if (respostaJogador != NULL) {
+                jogo->tempoInicioFeedback = GetTime();
+
+                // compara a resposta com o gabarito
+                if (strcmp(respostaJogador, jogo->professor.resposta) == 0) {
+                    jogo->estadoFeedback = FEEDBACK_ACERTOU;
+                    concluir_ajuda_professor(&jogo->jogador, &jogo->professor);
+                } else {
+                    jogo->estadoFeedback = FEEDBACK_ERROU;
+                }
             }
+        } else {
+            // enquanto a pergunta ainda está sendo digitada
+            DrawText("[Espaco] pular", mx, rodape, fonteQuiz(14, e), LIGHTGRAY);
         }
-    } 
-    else {
-        // Renderização visual do Feedback (Acertou / Errou)
+    } else {
+        // Renderização visual do Feedback (Acertou / Errou): o aluno responde e o professor reage
+        DrawText("Aluno:", mx, my, fonteQuiz(20, e), SKYBLUE);
+        DrawText(TextFormat("Minha resposta: %c", jogo->respostaEscolhida), mx, my + escalar(30, e), fonteQuiz(18, e), WHITE);
+        DrawText("Prof:", mx, my + escalar(80, e), fonteQuiz(20, e), YELLOW);
+
         if (jogo->estadoFeedback == FEEDBACK_ACERTOU) {
-            DrawRectangle(posX + escalar(20, e), posY + escalar(180, e), larguraModal - escalar(40, e), escalar(40, e), GREEN);
-            DrawText("RESPOSTA CORRETA! Pendrive obtido!", posX + escalar(35, e), posY + escalar(192, e), fonteQuiz(16, e), WHITE);
-        } 
-        else if (jogo->estadoFeedback == FEEDBACK_ERROU) {
-            DrawRectangle(posX + escalar(20, e), posY + escalar(180, e), larguraModal - escalar(40, e), escalar(40, e), RED);
-            DrawText("INCORRETO! Tente novamente.", posX + escalar(60, e), posY + escalar(192, e), fonteQuiz(16, e), WHITE);
+            DrawText("Isso mesmo! Aqui esta o pendrive.", mx, my + escalar(110, e), fonteQuiz(18, e), GREEN);
+        } else {
+            DrawText("Hmm, nao e isso. Tente de novo.", mx, my + escalar(110, e), fonteQuiz(18, e), RED);
         }
 
         // conta um tempo pra voltar pra tela inicial
@@ -168,6 +202,7 @@ void desenhar_quiz(Jogo *jogo) {
                 jogo->telaAtual = TELA_NORMAL;
             }
             jogo->estadoFeedback = FEEDBACK_NENHUM;
+            jogo->respostaEscolhida = '\0';
         }
     }
 }

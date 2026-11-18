@@ -301,7 +301,6 @@ void desenharTelaVitoria(Jogo *jogo, EntradaRanking ranking[], int totalRanking)
     if (jogo == NULL) return;
 
     float escala = hudEscala();
-    int cx = GetScreenWidth() / 2;
     int topo = (int)(50 * escala);
 
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.85f));

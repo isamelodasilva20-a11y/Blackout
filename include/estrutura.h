@@ -129,6 +129,8 @@ typedef struct Jogo{
     TelaJogo telaAtual;
     EstadoFeedback estadoFeedback;
     double tempoInicioFeedback;
+    float tempoFala;
+    char respostaEscolhida;
     int modoVisao;        
     float tempoJogo;      // cronometro: segundos desde o inicio da partida
     int totalItensAndar;  // quantas baterias o andar atual tinha ao carregar (para o HUD)
