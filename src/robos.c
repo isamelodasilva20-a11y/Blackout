@@ -297,8 +297,17 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
                 proximaCasa = calcularPassoFuga(&jogo->mapa, atual, jogo->jogador.posicao);
             }
             else if (atual->tipo == ROBO_TEMPORIZADOR) {
-                if (jogo->professor.posicao.linha >= 0 && jogo->professor.posicao.coluna >= 0) {
-                    Posicao passoRoxo = calcularProximoPassoBFS(&jogo->mapa, atual->posicao, jogo->professor.posicao);
+                if (jogo->professor.ajudado == false) {
+                    // Ainda nao respondeu a pergunta: vai ate o professor
+                    if (jogo->professor.posicao.linha >= 0 && jogo->professor.posicao.coluna >= 0) {
+                        Posicao passoRoxo = calcularProximoPassoBFS(&jogo->mapa, atual->posicao, jogo->professor.posicao);
+                        if (casaLivreParaRobo(&jogo->mapa, passoRoxo.linha, passoRoxo.coluna, semExcecao)) {
+                            proximaCasa = passoRoxo;
+                        }
+                    }
+                } else {
+                    // Ja respondeu a pergunta: agora persegue o aluno
+                    Posicao passoRoxo = calcularProximoPassoBFS(&jogo->mapa, atual->posicao, jogo->jogador.posicao);
                     if (casaLivreParaRobo(&jogo->mapa, passoRoxo.linha, passoRoxo.coluna, semExcecao)) {
                         proximaCasa = passoRoxo;
                     }
