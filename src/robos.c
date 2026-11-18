@@ -28,6 +28,7 @@ void robosAdicionar(Robo **cabeca, Posicao posicao, TipoRobo tipo, int andar) {
     novo->estado = ESTADO_NORMAL;
     novo->direcao = (Vector2){ 0, 0 };
     novo->tempoParalisado = 0.0f;
+    novo->tempoFugindo = 0.0f;
 
     if (tipo == ROBO_TEMPORIZADOR) {
         novo->velocidade = 1.4f + (andar - 1) * 0.15f;
@@ -135,6 +136,11 @@ Posicao calcularPassoFuga(Mapa *mapa, Robo *robo, Posicao posJogador) {
         int nL = robo->posicao.linha + dL[i];
         int nC = robo->posicao.coluna + dC[i];
 
+        // Nunca entra na mesma casa que o jogador está ocupando
+        if (nL == posJogador.linha && nC == posJogador.coluna) {
+            continue;
+        }
+
         if (casaLivreParaRobo(mapa, nL, nC, robo->posicao)) {
             if (nL == robo->posicaoAnterior.linha && nC == robo->posicaoAnterior.coluna) {
                 continue;
@@ -151,7 +157,9 @@ Posicao calcularPassoFuga(Mapa *mapa, Robo *robo, Posicao posJogador) {
     }
 
     if (melhor.linha == robo->posicao.linha && melhor.coluna == robo->posicao.coluna) {
-        if (casaLivreParaRobo(mapa, robo->posicaoAnterior.linha, robo->posicaoAnterior.coluna, robo->posicao)) {
+        // Só recua para posicaoAnterior se ela também não for a casa do jogador
+        if (!(robo->posicaoAnterior.linha == posJogador.linha && robo->posicaoAnterior.coluna == posJogador.coluna) &&
+            casaLivreParaRobo(mapa, robo->posicaoAnterior.linha, robo->posicaoAnterior.coluna, robo->posicao)) {
             melhor = robo->posicaoAnterior;
         }
     }
@@ -235,9 +243,26 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
             continue;
         }
 
+        // Desconta o tempo de fuga individual deste robô
+        if (atual->tempoFugindo > 0.0f) {
+            atual->tempoFugindo -= deltaTime;
+            if (atual->tempoFugindo < 0.0f) atual->tempoFugindo = 0.0f;
+        }
+
+        // Calcula a distância entre o robô e o jogador
+        float dxJog = atual->posicaoReal.x - (float)jogo->jogador.posicao.coluna;
+        float dyJog = atual->posicaoReal.y - (float)jogo->jogador.posicao.linha;
+        float distJogador = sqrtf(dxJog * dxJog + dyJog * dyJog);
+
         if (atual->tipo == ROBO_PERSEGUIDOR || atual->tipo == ROBO_INTERCEPTADOR ||
             (atual->tipo == ROBO_CINZA && jogo->andarAtual == 1)) {
-            if (lanternaAtiva) {
+            
+            // Ao entrar no raio de 4 quadradinhos com a lanterna ligada, ativa/renova 10s de fuga
+            if (lanternaAtiva && distJogador <= 4.0f) {
+                atual->tempoFugindo = 10.0f;
+            }
+
+            if (atual->tempoFugindo > 0.0f) {
                 atual->estado = ESTADO_FUGINDO;
             } else {
                 atual->estado = ESTADO_NORMAL;
@@ -328,7 +353,8 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
                     for (int i = 0; i < 4; i++) {
                         Posicao viz = { atual->posicao.linha + dL[i], atual->posicao.coluna + dC[i] };
                         if (casaLivreParaRobo(&jogo->mapa, viz.linha, viz.coluna, semExcecao) && 
-                            !temOutroRoboNaPosicao(jogo->robos, atual, viz)) {
+                            !temOutroRoboNaPosicao(jogo->robos, atual, viz) &&
+                            !(atual->estado == ESTADO_FUGINDO && viz.linha == jogo->jogador.posicao.linha && viz.coluna == jogo->jogador.posicao.coluna)) {
                             proximaCasa = viz;
                             desviou = true;
                             break;
@@ -338,6 +364,13 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
                         proximaCasa = atual->posicao;
                     }
                 }
+            }
+
+            // Garante que um robô fugindo nunca avance para a casa onde o jogador está
+            if (atual->estado == ESTADO_FUGINDO &&
+                proximaCasa.linha == jogo->jogador.posicao.linha &&
+                proximaCasa.coluna == jogo->jogador.posicao.coluna) {
+                proximaCasa = atual->posicao;
             }
 
             atual->posicaoAnterior = atual->posicao;
@@ -450,7 +483,8 @@ void checarVitoriaDerrotaRobos(Jogo *jogo) {
             }
         }
 
-        if (atual->tempoParalisado <= 0.0f && jogo->jogador.tempoInvulneravel <= 0.0f && roboQueBateu == NULL) {
+        if (atual->estado != ESTADO_FUGINDO && atual->tempoParalisado <= 0.0f &&
+            jogo->jogador.tempoInvulneravel <= 0.0f && roboQueBateu == NULL) {
             float dx = atual->posicaoReal.x - (float)jogo->jogador.posicao.coluna;
             float dy = atual->posicaoReal.y - (float)jogo->jogador.posicao.linha;
             float dist = sqrtf(dx * dx + dy * dy);

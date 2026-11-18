@@ -93,7 +93,8 @@ typedef struct Robo {
     Vector2 posicaoReal;    // Posição fluida na tela (float)
     Vector2 direcao;        // Direção do movimento ex: {1, 0}
     float velocidade;
-    float tempoParalisado;       
+    float tempoParalisado;   
+    float tempoFugindo;     
     struct Robo *next;
 } Robo;
 
