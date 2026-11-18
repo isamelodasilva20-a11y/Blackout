@@ -27,7 +27,14 @@ void jogoCarregar(Jogo *jogo) {
     jogo->texRoboTemporizador[1] = LoadTexture("imagens/robo_roxo_lado.png");           
     jogo->texRoboTemporizador[2] = LoadTexture("imagens/robo_roxo_lado.png");           
     jogo->texRoboTemporizador[3] = LoadTexture("imagens/robo_roxo_lado.png");
-}
+    
+    jogo->texRoboCinza[0] = LoadTexture("imagens/robo_cinza_acenando.png");   
+    jogo->texRoboCinza[3] = LoadTexture("imagens/robo_cinza_acenando2.png"); 
+    jogo->texRoboCinza[1] = LoadTexture("imagens/robo_cinza_costas.png");     
+    jogo->texRoboCinza[2] = LoadTexture("imagens/robo_cinza_esquerda_2.png"); 
+    jogo->texRoboCinza[3] = LoadTexture("imagens/robo_cinza_direita.png");    
+       
+}   
 
 // 2. Leitura dos caracteres do mapa para adicionar os robôs com a velocidade ajustada ao andar
 void jogoCarregarMapaRobos(Jogo *jogo, char mapaTexto[100][100], int linhas, int colunas) {
