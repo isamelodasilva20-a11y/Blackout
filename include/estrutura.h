@@ -33,6 +33,7 @@ typedef struct Jogador{
     int bateria;
     float tempoLanterna;
     float tempoInvulneravel;
+    float tempoCurtoCircuito;
     int frame;      
     bool temPendrive;  
 } Jogador;
@@ -68,6 +69,7 @@ typedef enum {
     ROBO_TEMPORIZADOR,     
     ROBO_PERSEGUIDOR,   
     ROBO_INTERCEPTADOR  
+    ROBO_CINZA;
 } TipoRobo;
 
 typedef enum {
@@ -112,6 +114,7 @@ typedef struct Jogo{
     Texture2D texRoboInterceptador[4];
     Texture2D texRoboTemporizador[4];
     Texture2D texRoboPerseguidor[4];
+    Texture2D texRoboCinza[4];
     Texture2D texturaItem;
     Item *itens;          
     Robo *robos;     
