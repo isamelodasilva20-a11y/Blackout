@@ -1,12 +1,16 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <math.h>
+#include <string.h>
+#include "estrutura.h"
 #include "raylib.h"
 #include "jogo.h"     // 1. jogo.h primeiro
 #include "hud.h"
 #include "itens.h"    // 2. itens.h
 #include "mapa.h"
 #include "professor.h"
+#include "ranking.h"
+
 
 // Cores do HUD
 #define COR_HUD_FUNDO   (Color){  10,  12,  20, 220 }
@@ -293,18 +297,36 @@ static void textoCentralizado(const char *texto, int y, int tamanho, Color cor) 
     DrawText(texto, (GetScreenWidth() - MeasureText(texto, tamanho)) / 2, y, tamanho, cor);
 }
 
-// Tela final: escurece o jogo e mostra a mensagem e o tempo total, centralizados
-void desenharTelaVitoria(Jogo *jogo) {
+void desenharTelaVitoria(Jogo *jogo, EntradaRanking ranking[], int totalRanking) {
     if (jogo == NULL) return;
 
     float escala = hudEscala();
-    int meio = GetScreenHeight() / 2;
+    int cx = GetScreenWidth() / 2;
+    int topo = (int)(50 * escala);
 
-    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.75f));
-    textoCentralizado("BACKUP CONCLUÍDO! TODOS OS PENDRIVES FORAM COLETADOS!", meio - (int)(60 * escala), fonteEscalada(30, escala), GREEN);
-    textoCentralizado(TextFormat("Tempo total: %s", formatarTempo(jogo->tempoJogo)), meio - (int)(10 * escala), fonteEscalada(24, escala), WHITE);
-    textoCentralizado("Pressione ESC para sair", meio + (int)(35 * escala), fonteEscalada(20, escala), LIGHTGRAY);
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.85f));
+    textoCentralizado("BACKUP CONCLUÍDO! TODOS OS PENDRIVES FORAM COLETADOS!", topo, fonteEscalada(26, escala), GREEN);
+    textoCentralizado(TextFormat("Jogador: %s  |  Seu Tempo: %s", jogo->jogador.nome, formatarTempo(jogo->tempoJogo)),
+                      topo + (int)(40 * escala), fonteEscalada(22, escala), WHITE);
+
+    // --- TABELA DE RANKING GERAL ---
+    int yRank = topo + (int)(95 * escala);
+    textoCentralizado("=== RANKING GERAL (TOP 5) ===", yRank, fonteEscalada(24, escala), COR_HUD_LINHA);
+    yRank += (int)(40 * escala);
+
+    int limite = (totalRanking < 5) ? totalRanking : 5;
+    for (int i = 0; i < limite; i++) {
+        // Destaca se for a linha do jogador atual
+        bool ehJogadorAtual = (strcmp(ranking[i].nome, jogo->jogador.nome) == 0 &&
+                               fabsf(ranking[i].tempo - jogo->tempoJogo) < 0.05f);
+        Color corLinha = ehJogadorAtual ? YELLOW : RAYWHITE;
+
+        const char *linhaRank = TextFormat("%dº  %-18s  %s", i + 1, ranking[i].nome, formatarTempo(ranking[i].tempo));
+        textoCentralizado(linhaRank, yRank + i * (int)(32 * escala), fonteEscalada(20, escala), corLinha);    }
+
+    textoCentralizado("Pressione ESC para sair", GetScreenHeight() - (int)(50 * escala), fonteEscalada(20, escala), LIGHTGRAY);
 }
+
 
 // Tela de pausa: escurece o jogo (que continua desenhado atras, parado) e
 // mostra o aviso no meio, com as cores da marca

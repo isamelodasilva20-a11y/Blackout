@@ -1,7 +1,7 @@
 {
   "configurations": [
     {
-      "name": "windows-gcc-x64",
+      "name": "macos-gcc-x64",
       "includePath": [
         "${workspaceFolder}/**",
         "${workspaceFolder}/include",
@@ -10,7 +10,7 @@
       "defines": [],
       "compilerPath": "C:/w64devkit/bin/gcc.exe",
       "cStandard": "${default}",
-      "intelliSenseMode": "windows-gcc-x64",
+      "intelliSenseMode": "macos-gcc-x64",
       "cppStandard": "${default}"
     },
     {

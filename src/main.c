@@ -9,6 +9,8 @@
 #include "hud.h"
 #include "robos.h"
 #include "estrutura.h"
+#include "ranking.h"
+
 
 int main(void) {
     // Janela redimensionavel: o jogador pode arrastar a borda ou maximizar,
@@ -82,8 +84,10 @@ int main(void) {
     int venceu = 0;
     int pausado = 0; // 1 enquanto o jogo esta pausado (tecla P)
 
+    EntradaRanking listaRanking[MAX_RANKING];
+    int totalRanking = 0;
 
-    if (carregou) telaInicialMostrar(); // historia do jogo; ENTER comeca
+    if (carregou) telaInicialMostrar(jogo.jogador.nome, 32);
 
     while (carregou && !WindowShouldClose()) {
         // --- F11 alterna tela cheia (sem borda, na resolucao do monitor) ---
@@ -232,6 +236,9 @@ int main(void) {
                     }
                 } else {
                     venceu = 1;
+                    rankingSalvar(jogo.jogador.nome, jogo.tempoJogo);
+                    totalRanking = rankingCarregar(listaRanking, MAX_RANKING);
+
                 }
             }
         }
@@ -273,7 +280,7 @@ int main(void) {
 
             if (jogo.telaAtual == TELA_QUIZ) desenhar_quiz(&jogo);
 
-            if (venceu) desenharTelaVitoria(&jogo);
+            if (venceu) desenharTelaVitoria(&jogo, listaRanking, totalRanking);
 
             if (jogo.telaAtual == TELA_GAME_OVER) {
                 desenharTelaGameOver();

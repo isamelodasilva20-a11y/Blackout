@@ -27,7 +27,8 @@ typedef struct Mapa {
 typedef struct Jogador{
     Posicao posicao;          
     Posicao posicaoInicial;   
-    Direcao direcao;           
+    Direcao direcao;  
+    char nome[50];         
     int vidas;            
     int pontos;           
     int bateria;
@@ -38,12 +39,16 @@ typedef struct Jogador{
     bool temPendrive;  
 } Jogador;
 
+typedef struct EntradaRanking{
+    char nome[50];
+    float tempo;
+} EntradaRanking;
 
 typedef enum {
     ITEM_BATERIA
 } TipoItem;
 
-typedef struct Item {
+typedef struct{
     Posicao posicao;
     TipoItem tipo;
     struct Item *next;
