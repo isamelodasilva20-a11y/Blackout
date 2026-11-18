@@ -17,11 +17,6 @@ int main(void) {
     // e tudo (mapa, 3D, HUD e quiz) se ajusta ao novo tamanho
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(LARGURA_BASE, ALTURA_BASE, "Blackout");
-    InitAudioDevice();
-    Music musicaFundo = LoadMusicStream("imagens/musica/running_out_of_time.ogg");
-    musicaFundo.looping = true;
-    SetMusicVolume(musicaFundo, 0.45f);
-    PlayMusicStream(musicaFundo);
     SetWindowMinSize(LARGURA_BASE / 2, ALTURA_BASE / 2);
     SetTargetFPS(60);
 
@@ -74,18 +69,15 @@ int main(void) {
     jogo.jogador.bateria = 0;
     jogo.jogador.tempoInvulneravel = 0.0f;
 
-
     // Começa no andar 1. O professor (posição e pergunta) também vem daqui.
-    // Se der erro, o loop nem roda, mas o programa ainda passa pela limpeza
-    // do final (memória, textura e janela) antes de sair.
     int carregou = mapaCarregarAndar(&jogo, 1);
 
     float acumuladorTempo = 0.0f;
     float tempoInativo = 0.0f;
-    float tempoPasso = 0.0f; // Temporizador para controlar a velocidade do movimento contínuo
-    const float INTERVALO_PASSO = 0.20f; // Intervalo de 0.20s entre cada passo ao segurar a tecla
+    float tempoPasso = 0.0f;
+    const float INTERVALO_PASSO = 0.20f;
     int venceu = 0;
-    int pausado = 0; // 1 enquanto o jogo esta pausado (tecla P)
+    int pausado = 0;
 
     EntradaRanking listaRanking[MAX_RANKING];
     int totalRanking = 0;
@@ -127,7 +119,6 @@ int main(void) {
         // --- V alterna a visão: 0 = 2D (de cima), 1 = 3D (primeira pessoa) ---
         if (IsKeyPressed(KEY_V)) {
             jogo.modoVisao = !jogo.modoVisao;
-            // Ao entrar no 3D a câmera já começa na casa do jogador, sem animação
             if (jogo.modoVisao == 1) render3dReiniciarCamera(&jogo);
         }
 
@@ -145,7 +136,7 @@ int main(void) {
 
             // --- Ativa a lanterna ao apertar L (se tiver bateria e ainda estiver desligada) ---
             if (IsKeyPressed(KEY_L) && jogo.jogador.bateria > 0 && jogo.jogador.tempoLanterna <= 0.0f) {
-                jogo.jogador.tempoLanterna = 10.0f; // Inicia os 10 segundos de descarga
+                jogo.jogador.tempoLanterna = 10.0f;
             }
 
             // --- Contagem regressiva apenas depois que L foi pressionado ---
@@ -157,7 +148,6 @@ int main(void) {
                     jogo.jogador.bateria = 0;
                 }
             }
-
 
             if (jogo.jogador.tempoInvulneravel > 0.0f) {
                 jogo.jogador.tempoInvulneravel -= dt;
@@ -174,7 +164,7 @@ int main(void) {
                 }
             }
 
-            // Atualizacao continua e fluida de todos os robos (estilo Pac-Man)
+            // Atualizacao continua e fluida de todos os robos
             robosAtualizarContinuo(&jogo, dt);
             checarVitoriaDerrotaRobos(&jogo);
          
@@ -243,6 +233,26 @@ int main(void) {
                 }
             }
 
+            // Coleta de itens e troca de andar
+            coletar_item(&jogo.itens, &jogo.jogador);
+
+            int naEscada = (jogo.jogador.posicao.linha == jogo.mapa.saida.linha &&
+                            jogo.jogador.posicao.coluna == jogo.mapa.saida.coluna);
+
+            if (jogo.professor.ajudado && naEscada) {
+                if (jogo.andarAtual < TOTAL_ANDARES) {
+                    if (!mapaCarregarAndar(&jogo, jogo.andarAtual + 1)) {
+                        carregou = 0;
+                        break;
+                    }
+                } else {
+                    venceu = 1;
+                    rankingSalvar(jogo.jogador.nome, jogo.tempoJogo);
+                    totalRanking = rankingCarregar(listaRanking, MAX_RANKING);
+                }
+            }
+        } // <--- Chave que estava faltando!
+
         // A câmera 3D desliza até a casa/direção nova do jogador
         if (jogo.modoVisao == 1) {
             render3dAtualizarCamera(&jogo, GetFrameTime());
@@ -261,21 +271,16 @@ int main(void) {
             ClearBackground(BLACK);
 
             if (jogo.modoVisao == 0) {
-                // 2D: o tamanho da casa e a origem sao recalculados todo quadro
-                // a partir do tamanho atual da janela (mapa centralizado acima do HUD).
-                // Ordem = camadas: piso/paredes, escada, itens, professor e,
-                // por último, o jogador (fica por cima de tudo)
                 Vector2 origem = { 0.0f, 0.0f };
                 int tamanhoCasa = 24;
                 hudLayoutMapa(&jogo.mapa, &origem, &tamanhoCasa);
                 desenharMapa2D(&jogo.mapa, origem, tamanhoCasa);
-                desenharSaida2D(&jogo.mapa, origem, tamanhoCasa, jogo.professor.ajudado); // verde = liberada pelo professor
+                desenharSaida2D(&jogo.mapa, origem, tamanhoCasa, jogo.professor.ajudado);
                 desenhar_item(&jogo, origem, tamanhoCasa);
                 desenhar_professor(&jogo, origem, tamanhoCasa);
                 desenharRobos(&jogo, origem, tamanhoCasa);
                 desenharJogador2D(&jogo, origem, tamanhoCasa);
             } else {
-                // 3D: cena em primeira pessoa ocupando a janela toda e o minimapa no canto
                 desenharCena3D(&jogo);
                 desenharMinimapa(&jogo);
                 desenharNickProfessor3D(&jogo.professor);
@@ -295,6 +300,7 @@ int main(void) {
                     jogo.jogador.bateria = 0;
                     jogo.jogador.tempoLanterna = 0.0f;
                     jogo.jogador.tempoInvulneravel = 0.0f;
+                    jogo.jogador.tempoCurtoCircuito = 0.0f;
                     jogo.jogador.temPendrive = false;
                     jogo.tempoJogo = 0.0f;
                     jogo.telaAtual = TELA_NORMAL;
@@ -308,6 +314,9 @@ int main(void) {
     }
 
     // Limpeza: roda sempre, inclusive quando o andar não carregou
+    UnloadMusicStream(musicaFundo);
+    CloseAudioDevice();
+
     liberar_todos_itens(&jogo.itens);
     robosLiberar(&jogo.robos);
     mapaLiberar(&jogo.mapa);
