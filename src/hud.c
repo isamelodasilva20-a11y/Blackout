@@ -94,6 +94,27 @@ static void desenharIconeBateria(float x, float y, float largura, float altura, 
     }
 }
 
+// Lanterna: corpo retangular, lente na direita e facho de luz quando ligada
+static void desenharIconeLanterna(float x, float y, float largura, float altura, bool ligada) {
+    Color corCorpo = ligada ? YELLOW : DARKGRAY;
+    Color corLente = ligada ? WHITE : GRAY;
+
+    // Cabo/corpo da lanterna
+    DrawRectangleRounded((Rectangle){ x, y + altura * 0.22f, largura * 0.65f, altura * 0.56f }, 0.3f, 4, corCorpo);
+    // Cabeça/lente da lanterna
+    DrawRectangle((int)(x + largura * 0.65f), (int)(y + altura * 0.10f), (int)(largura * 0.25f), (int)(altura * 0.80f), corLente);
+
+    // Facho de luz saindo da lente quando ligada
+    if (ligada) {
+        Vector2 p1 = { x + largura * 0.92f, y + altura * 0.20f };
+        Vector2 p2 = { x + largura * 0.92f, y + altura * 0.80f };
+        Vector2 p3 = { x + largura * 1.45f, y + altura * 1.05f };
+        Vector2 p4 = { x + largura * 1.45f, y - altura * 0.05f };
+        DrawTriangle(p1, p2, p3, Fade(YELLOW, 0.45f));
+        DrawTriangle(p1, p3, p4, Fade(YELLOW, 0.45f));
+    }
+}
+
 // Pendrive: corpo arredondado + conector metalico na ponta
 static void desenharIconePendrive(float x, float y, float largura, float altura, Color cor) {
     DrawRectangleRounded((Rectangle){ x, y, largura * 0.72f, altura }, 0.4f, 6, cor);
@@ -169,11 +190,10 @@ static void desenharAlertaProximidade(Jogo *jogo) {
     const char *texto = (menorDist <= 2.5f) ? "PERIGO: ROBO PERTO!" : "ALERTA DE PROXIMIDADE";
     DrawText(texto, posX + 36, posY + 11, 14, piscaAtivo ? corAlerta : LIGHTGRAY);
 }
+
 // Barra de baixo com duas linhas:
-//   linha 1: vidas, andar, baterias, pendrive (esquerda) e cronometro (direita)
+//   linha 1: vidas, andar, bateria, pendrive, lanterna (esquerda) e cronometro (direita)
 //   linha 2: objetivo atual (esquerda) e controles do modo de visao (direita)
-// Os itens da linha 1 sao colocados um depois do outro: x guarda onde o
-// proximo comeca, e MeasureText diz quanto espaco cada texto ocupou.
 void desenharHUD(Jogo *jogo) {
     if (jogo == NULL) return;
 
@@ -214,7 +234,7 @@ void desenharHUD(Jogo *jogo) {
     DrawText(textoAndar, (int)x, linha1, fonte, WHITE);
     x += (float)MeasureText(textoAndar, fonte) + espaco;
     
-    // Carga atual da lanterna (0 a 100%)
+    // Carga atual da bateria (0 a 100%)
     float progresso = (float)jogo->jogador.bateria / 100.0f;
     if (progresso < 0.0f) progresso = 0.0f;
     if (progresso > 1.0f) progresso = 1.0f;
@@ -233,14 +253,18 @@ void desenharHUD(Jogo *jogo) {
     DrawText("PENDRIVE", (int)x, linha1, fonte, corPendrive);
     x += (float)MeasureText("PENDRIVE", fonte) + espaco;
 
-    float progLanterna = jogo->jogador.tempoLanterna / 10.0f;
-    if (progLanterna < 0.0f) progLanterna = 0.0f;
-    if (progLanterna > 1.0f) progLanterna = 1.0f;
+    // Estado da Lanterna (Ligada ao apertar L ou Desligada)
+    bool lanternaLigada = (jogo->jogador.tempoLanterna > 0.0f && jogo->jogador.bateria > 0);
+    desenharIconeLanterna(x, meioLinha1 - alturaIcone / 2.0f, alturaIcone * 1.5f, alturaIcone, lanternaLigada);
+    x += alturaIcone * 1.9f + 6.0f * escala;
 
-    desenharIconeBateria(x, meioLinha1 - alturaIcone / 2.0f, alturaIcone * 1.6f, alturaIcone, progLanterna, escala);
-    x += alturaIcone * 1.6f + alturaIcone * 0.2f + 6.0f * escala;
-    Color corLanterna = (jogo->jogador.bateria > 0) ? YELLOW : GRAY;
-    DrawText("LANTERNA", (int)x, linha1, fonte, corLanterna);
+    const char *textoLanterna = lanternaLigada
+        ? "LIGADA"
+        : (jogo->jogador.bateria > 0 ? "DESLIGADA [L]" : "DESLIGADA");
+    Color corLanterna = lanternaLigada
+        ? YELLOW
+        : (jogo->jogador.bateria > 0 ? RAYWHITE : GRAY);
+    DrawText(textoLanterna, (int)x, linha1, fonte, corLanterna);
 
     // Cronometro, alinhado na direita
     const char *textoTempo = formatarTempo(jogo->tempoJogo);
@@ -265,8 +289,8 @@ void desenharHUD(Jogo *jogo) {
     DrawText(objetivo, (int)margem, linha2, fontePequena, corObjetivo);
 
     const char *controles = (jogo->modoVisao == 0)
-        ? "WASD: andar   V: visão 3D   P: pausar   F11: tela cheia"
-        : "W/S: andar   A/D: girar   V: visão 2D   P: pausar   F11: tela cheia";
+        ? "WASD: andar   L: lanterna   V: visão 3D   P: pausar   F11: tela cheia"
+        : "W/S: andar   A/D: girar   L: lanterna   V: visão 2D   P: pausar";
     int larguraControles = MeasureText(controles, fontePequena);
     int fimObjetivo = (int)margem + MeasureText(objetivo, fontePequena);
     // So mostra os controles se eles nao forem encostar no objetivo
@@ -292,6 +316,7 @@ void desenharHUD(Jogo *jogo) {
 
     desenharAlertaProximidade(jogo);
 }
+
 // Escreve um texto centralizado na horizontal
 static void textoCentralizado(const char *texto, int y, int tamanho, Color cor) {
     DrawText(texto, (GetScreenWidth() - MeasureText(texto, tamanho)) / 2, y, tamanho, cor);
@@ -321,11 +346,11 @@ void desenharTelaVitoria(Jogo *jogo, EntradaRanking ranking[], int totalRanking)
         Color corLinha = ehJogadorAtual ? YELLOW : RAYWHITE;
 
         const char *linhaRank = TextFormat("%dº  %-18s  %s", i + 1, ranking[i].nome, formatarTempo(ranking[i].tempo));
-        textoCentralizado(linhaRank, yRank + i * (int)(32 * escala), fonteEscalada(20, escala), corLinha);    }
+        textoCentralizado(linhaRank, yRank + i * (int)(32 * escala), fonteEscalada(20, escala), corLinha);
+    }
 
     textoCentralizado("Pressione ESC para sair", GetScreenHeight() - (int)(50 * escala), fonteEscalada(20, escala), LIGHTGRAY);
 }
-
 
 // Tela de pausa: escurece o jogo (que continua desenhado atras, parado) e
 // mostra o aviso no meio, com as cores da marca

@@ -63,8 +63,6 @@ int main(void) {
         }
     }
 
-    // --- CARREGAMENTO DOS ROBÔS ---
-    // --- CARREGAMENTO DOS ROBÔS E RECURSOS DO JOGO ---
     jogoCarregar(&jogo);
 
     jogo.jogador.vidas = VIDAS_INICIAIS;
@@ -129,6 +127,12 @@ int main(void) {
 
             float dt = GetFrameTime();
 
+            // --- Ativa a lanterna ao apertar L (se tiver bateria e ainda estiver desligada) ---
+            if (IsKeyPressed(KEY_L) && jogo.jogador.bateria > 0 && jogo.jogador.tempoLanterna <= 0.0f) {
+                jogo.jogador.tempoLanterna = 10.0f; // Inicia os 10 segundos de descarga
+            }
+
+            // --- Contagem regressiva apenas depois que L foi pressionado ---
             if (jogo.jogador.tempoLanterna > 0.0f) {
                 jogo.jogador.tempoLanterna -= dt;
                 jogo.jogador.bateria = (int)((jogo.jogador.tempoLanterna / 10.0f) * 100.0f);
@@ -137,6 +141,7 @@ int main(void) {
                     jogo.jogador.bateria = 0;
                 }
             }
+
 
             if (jogo.jogador.tempoInvulneravel > 0.0f) {
                 jogo.jogador.tempoInvulneravel -= dt;
@@ -294,7 +299,8 @@ int main(void) {
                 desenharTelaGameOver();
                 if (IsKeyPressed(KEY_R)) {
                     jogo.jogador.vidas = VIDAS_INICIAIS;
-                    jogo.jogador.bateria = 100;
+                    jogo.jogador.bateria = 0;
+                    jogo.jogador.tempoLanterna = 0.0f;
                     jogo.jogador.tempoInvulneravel = 0.0f;
                     jogo.jogador.temPendrive = false;
                     jogo.tempoJogo = 0.0f;

@@ -86,7 +86,7 @@ void coletar_item(Item **itens, Jogador *jogador){
         //verifica se a posição do jogador é igual à do item
         if(jogador->posicao.linha == atual->posicao.linha && jogador->posicao.coluna == atual->posicao.coluna){
             jogador->bateria = 100;//recarrega a bateria
-            jogador->tempoLanterna = 10.0f;//10 segundos de lanterna
+            jogador->tempoLanterna = 0.0f;
 
             Item *apagado = atual;//atribui o item que será apagado apos a coleta
             atual = atual->next;//atual se liga ao proximo item

@@ -9,8 +9,19 @@
 #define ESCALA_SPRITE 1.6f
 
 //responsável pelos movimentos do jogador
+//responsável pelos movimentos do jogador
 void movimentar_jogador(Jogador *jogador, Mapa *mapa, Direcao direcao){
     if(jogador == NULL || mapa == NULL || mapa->matriz == NULL) return;
+
+    // se estiver em curto-circuito (terceiro andar), inverte os controles
+    if (jogador->tempoCurtoCircuito > 0.0f) {
+        switch (direcao) {
+            case DIR_CIMA:     direcao = DIR_BAIXO;    break;
+            case DIR_BAIXO:    direcao = DIR_CIMA;     break;
+            case DIR_DIREITA:  direcao = DIR_ESQUERDA; break;
+            case DIR_ESQUERDA: direcao = DIR_DIREITA;  break;
+        }
+    }
 
     //assume a posiçao atual, a proxima virá a partir do next dessa
     int nova_linha = jogador->posicao.linha;
@@ -46,6 +57,10 @@ void movimentar_jogador(Jogador *jogador, Mapa *mapa, Direcao direcao){
 //sentido horário visto de cima: cima -> direita -> baixo -> esquerda -> cima
 void girar_jogador(Jogador *jogador, bool paraDireita){
     if(jogador == NULL) return;
+
+    if (jogador->tempoCurtoCircuito > 0.0f) {
+        paraDireita = !paraDireita;
+    }
 
     switch (jogador->direcao){
         case DIR_CIMA:     jogador->direcao = paraDireita ? DIR_DIREITA  : DIR_ESQUERDA; break;
