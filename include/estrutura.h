@@ -48,7 +48,7 @@ typedef enum {
     ITEM_BATERIA
 } TipoItem;
 
-typedef struct{
+typedef struct Item{
     Posicao posicao;
     TipoItem tipo;
     struct Item *next;
@@ -119,7 +119,7 @@ typedef struct Jogo{
     Texture2D texRoboInterceptador[4];
     Texture2D texRoboTemporizador[4];
     Texture2D texRoboPerseguidor[4];
-    Texture2D texRoboCinza[4];
+    Texture2D texRoboCinza[5];
     Texture2D texturaItem;
     Item *itens;          
     Robo *robos;     

@@ -367,7 +367,11 @@ void desenharRobos(Jogo *jogo, Vector2 origem, int tamanhoTile) {
         } else if (r->tipo == ROBO_PERSEGUIDOR) {
             tex = jogo->texRoboPerseguidor[idxTex];
         } else if (r->tipo == ROBO_CINZA) {
-            tex = jogo->texRoboCinza[idxTex];
+            if (idxTex == 1 && ((int)(GetTime() * 4.0) % 2 == 1)) {
+               tex = jogo->texRoboCinza[4];
+            } else {
+               tex = jogo->texRoboCinza[idxTex];
+            }
         } else {
             tex = jogo->texRoboInterceptador[idxTex];
         }

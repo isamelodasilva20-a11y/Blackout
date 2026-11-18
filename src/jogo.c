@@ -28,14 +28,16 @@ void jogoCarregar(Jogo *jogo) {
     jogo->texRoboTemporizador[2] = LoadTexture("imagens/robo_roxo_lado.png");           
     jogo->texRoboTemporizador[3] = LoadTexture("imagens/robo_roxo_lado.png");
     
-    jogo->texRoboCinza[0] = LoadTexture("imagens/robo_cinza_acenando.png");   
-    jogo->texRoboCinza[3] = LoadTexture("imagens/robo_cinza_acenando2.png"); 
-    jogo->texRoboCinza[1] = LoadTexture("imagens/robo_cinza_costas.png");     
-    jogo->texRoboCinza[2] = LoadTexture("imagens/robo_cinza_esquerda_2.png"); 
-    jogo->texRoboCinza[3] = LoadTexture("imagens/robo_cinza_direita.png");    
+    // Robô Cinza
+    jogo->texRoboCinza[0] = LoadTexture("imagens/robo_cinza_costas.png");     // [0] Cima (Costas)[cite: 4]
+    jogo->texRoboCinza[1] = LoadTexture("imagens/robo_cinza_acenando.png");   // [1] Baixo (Frente - frame 1)[cite: 4]
+    jogo->texRoboCinza[2] = LoadTexture("imagens/robo_cinza_esquerda_2.png"); // [2] Esquerda[cite: 4]
+    jogo->texRoboCinza[3] = LoadTexture("imagens/robo_cinza_direita.png");    // [3] Direita[cite: 4]
+    jogo->texRoboCinza[4] = LoadTexture("imagens/robo_cinza_acenando_2.png"); // [4] Baixo (Frente - frame 2)[cite: 4]
        
 }   
 
+// 2. Leitura dos caracteres do mapa para adicionar os robôs com a velocidade ajustada ao andar
 // 2. Leitura dos caracteres do mapa para adicionar os robôs com a velocidade ajustada ao andar
 void jogoCarregarMapaRobos(Jogo *jogo, char mapaTexto[100][100], int linhas, int colunas) {
     if (jogo == NULL) return;
@@ -51,11 +53,12 @@ void jogoCarregarMapaRobos(Jogo *jogo, char mapaTexto[100][100], int linhas, int
                 robosAdicionar(&jogo->robos, posAtual, ROBO_PERSEGUIDOR, jogo->andarAtual);
             } else if (caractere == 'T' || caractere == 'R') {
                 robosAdicionar(&jogo->robos, posAtual, ROBO_TEMPORIZADOR, jogo->andarAtual);
+            } else if (caractere == 'B') {
+                robosAdicionar(&jogo->robos, posAtual, ROBO_CINZA, jogo->andarAtual);
             }
         }
     }
 }
-
 // 3. Atualização contínua de colisões
 void jogoTick(Jogo *jogo) {
     if (jogo == NULL) return;
@@ -71,5 +74,7 @@ void jogoDescarregar(Jogo *jogo) {
         UnloadTexture(jogo->texRoboInterceptador[i]);
         UnloadTexture(jogo->texRoboPerseguidor[i]);
         UnloadTexture(jogo->texRoboTemporizador[i]);
+        UnloadTexture(jogo->texRoboCinza[i]);
     }
+    UnloadTexture(jogo->texRoboCinza[4]);
 }

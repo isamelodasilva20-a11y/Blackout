@@ -377,6 +377,10 @@ int mapaCarregar(Jogo *jogo, const char *arquivo) {
                     robosAdicionar(&jogo->robos, (Posicao){ .linha = i, .coluna = j }, ROBO_INTERCEPTADOR, jogo->andarAtual);
                     mapa->matriz[i][j] = piso;
                     break;
+                case 'B': // Robo Cinza
+                    robosAdicionar(&jogo->robos, (Posicao){ .linha = i, .coluna = j }, ROBO_CINZA, jogo->andarAtual);
+                    mapa->matriz[i][j] = piso;
+                    break;
                 case 'L': // lanterna agora e fixa, nao vira item
                     mapa->matriz[i][j] = piso;
                     break;
