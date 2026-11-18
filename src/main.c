@@ -286,7 +286,7 @@ int main(void) {
                 desenharTelaGameOver();
                 if (IsKeyPressed(KEY_R)) {
                     jogo.jogador.vidas = VIDAS_INICIAIS;
-                    jogo.jogador.bateria = 100;
+                    jogo.jogador.bateria = 0;
                     jogo.jogador.tempoInvulneravel = 0.0f;
                     jogo.jogador.temPendrive = false;
                     jogo.tempoJogo = 0.0f;

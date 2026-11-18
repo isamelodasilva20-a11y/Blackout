@@ -5,6 +5,7 @@
 #include "estrutura.h"
 #include "robos.h"
 #include "mapa.h"
+#include "memoria.h"
 
 Robo *roboQueBateu = NULL;
 int passosRecuo = 0;
@@ -16,7 +17,7 @@ int obterIndiceDirecaoRobo(Vector2 direcao) {
 }
 
 void robosAdicionar(Robo **cabeca, Posicao posicao, TipoRobo tipo, int andar) {
-    Robo *novo = (Robo *)malloc(sizeof(Robo));
+    Robo *novo = memAlocar(sizeof(Robo));
     if (novo == NULL) return;
 
     novo->posicao = posicao;
@@ -51,7 +52,7 @@ void robosLiberar(Robo **cabeca) {
     while (atual != NULL) {
         Robo *temp = atual;
         atual = atual->next;
-        free(temp);
+        memLiberar(temp);
     }
     *cabeca = NULL;
 }
@@ -188,7 +189,7 @@ void destruirBateriaNaPosicao(Item **itens, Posicao pos) {
             } else {
                 anterior->next = atual->next;
             }
-            free(atual);
+            memLiberar(atual);
             return;
         }
         anterior = atual;
