@@ -16,9 +16,9 @@ typedef struct {
 } DadosProfessorAndar;
 
 static const DadosProfessorAndar DADOS_PROFESSORES[] = {
-    { "Prof. Thiaguinho", "Qual especificador imprime um int em C?\nA) %s  B) %d  C) %f", "B", PROFESSOR_1 },
+    { "Prof. Thiaguinho", "Qual especificador imprime \num int em C?\nA) %s  B) %d  C) %f", "B", PROFESSOR_1 },
     { "Prof. Daniel",      "Qual função libera a memória\nalocada com malloc?\nA) free  \nB) delete  \nC) clear  \nD) drop", "A", PROFESSOR_2 },
-    { "Prof. Péricles",     "Qual a principal funcao da plataforma Eden AI?\nA) Criar imagens 3D\nB) Agrupar conteudos e tutoria de estudos\nC) Compilar codigo C\nD) Formatar o computador", "B", PROFESSOR_3 },
+    { "Prof. Péricles",     "Qual a principal funcao da \nplataforma Eden AI?\nA) Criar imagens 3D\nB) Agrupar conteudos e tutoria de estudos\nC) Compilar codigo C\nD) Formatar o computador", "B", PROFESSOR_3 },
 };
 
 // atribui as características do professor
@@ -187,18 +187,30 @@ void desenhar_quiz(Jogo *jogo) {
     } else {
         // Renderização visual do Feedback (Acertou / Errou): o aluno responde e o professor reage
         DrawText("Aluno:", mx, my, fonteQuiz(20, e), SKYBLUE);
-        DrawText(TextFormat("Minha resposta: %c", jogo->respostaEscolhida), mx, my + escalar(30, e), fonteQuiz(18, e), WHITE);
+        DrawText(TextFormat("é... eu acho que é %c", jogo->respostaEscolhida), mx, my + escalar(30, e), fonteQuiz(18, e), WHITE);
         DrawText("Prof:", mx, my + escalar(80, e), fonteQuiz(20, e), YELLOW);
 
         if (jogo->estadoFeedback == FEEDBACK_ACERTOU) {
-            DrawText("Isso mesmo! Aqui esta o pendrive.", mx, my + escalar(110, e), fonteQuiz(18, e), GREEN);
+            if(jogo->professor.tipo == PROFESSOR_1){
+                DrawText("Isso mesmo! Aqui esta o pendrive com \numa parte do seu projeto.\nMas cuidado! os robos estão \nchegando...tome essa \npilha para sua lanterna!", mx, my + escalar(110, e), fonteQuiz(18, e), GREEN);
+            }else if(jogo->professor.tipo == PROFESSOR_2){
+                DrawText("Muito bem! toma aqui seu pendrive \nMas cuidado! Mineiro configurou muito bem esses robôs \n e eles tão comendo as \nbaterias restantes\ntome essa \npilha para sua lanterna!", mx, my + escalar(110, e), fonteQuiz(18, e), GREEN);
+            }else if(jogo->professor.tipo == PROFESSOR_3){
+                DrawText("Perfeito! Pegue seu ultimo pendrive! \nCorra logo para a saída...\neles estão cada vez mais perigosos\ntome essa \npilha para sua lanterna!", mx, my + escalar(110, e), fonteQuiz(18, e), GREEN);
+            }
         } else {
-            DrawText("Hmm, nao e isso. Tente de novo.", mx, my + escalar(110, e), fonteQuiz(18, e), RED);
+            if(jogo->professor.tipo == PROFESSOR_1){
+                DrawText("Ta errado...se tivesse feito \nas questoes do EdenAI teria \nacertado. \nTente de Novo!", mx, my + escalar(110, e), fonteQuiz(18, e), RED);
+            }else if(jogo->professor.tipo == PROFESSOR_2){
+                DrawText("Errasse cara, cuidado com a prova...", mx, my + escalar(110, e), fonteQuiz(18, e), RED);
+            }else if(jogo->professor.tipo == PROFESSOR_3){
+                DrawText("Eh... tá errado alguem tem que ver isso aí.", mx, my + escalar(110, e), fonteQuiz(18, e), RED);
+            }
         }
 
         // conta um tempo pra voltar pra tela inicial
         if (GetTime() - jogo->tempoInicioFeedback >= 1.5) {
-            if (jogo->estadoFeedback == FEEDBACK_ACERTOU) {
+            if (jogo->estadoFeedback == FEEDBACK_ACERTOU) { 
                 jogo->telaAtual = TELA_NORMAL;
             }
             jogo->estadoFeedback = FEEDBACK_NENHUM;
