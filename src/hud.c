@@ -329,8 +329,48 @@ static void textoCentralizado(const char *texto, int y, int tamanho, Color cor) 
     DrawText(texto, (GetScreenWidth() - MeasureText(texto, tamanho)) / 2, y, tamanho, cor);
 }
 
-void desenharTelaVitoria(Jogo *jogo, EntradaRanking ranking[], int totalRanking) {
-    if (jogo == NULL) return;
+// Efeito de "acender a luz" no comeco da partida: a tela comeca toda preta
+// (a tela inicial termina no preto) e a luz liga como uma lampada
+// fluorescente: dois piscos curtos e depois vai acendendo ate ficar normal.
+// Cada linha da tabela e { ate quantos segundos, brilho nesse trecho }.
+static const float ETAPAS_ACENDER[][2] = {
+    { 0.25f, 0.00f },  // ainda no escuro
+    { 0.32f, 0.70f },  // pisco 1
+    { 0.45f, 0.05f },  //   apaga
+    { 0.52f, 0.85f },  // pisco 2
+    { 0.68f, 0.10f },  //   apaga de novo
+};
+#define TOTAL_ETAPAS_ACENDER ((int)(sizeof(ETAPAS_ACENDER) / sizeof(ETAPAS_ACENDER[0])))
+#define FIM_ACENDER 1.30f  // a partir daqui a luz fica 100% acesa
+
+void desenharLuzAcendendo(float t) {
+    if (t >= FIM_ACENDER) return; // efeito acabou: nao desenha nada
+
+    // Procura na tabela o trecho em que o tempo t esta
+    float brilho = -1.0f;
+    for (int i = 0; i < TOTAL_ETAPAS_ACENDER; i++) {
+        if (t < ETAPAS_ACENDER[i][0]) {
+            brilho = ETAPAS_ACENDER[i][1];
+            break;
+        }
+    }
+    // Depois dos piscos: sobe em linha reta de 30% ate 100%
+    if (brilho < 0.0f) {
+        float inicio = ETAPAS_ACENDER[TOTAL_ETAPAS_ACENDER - 1][0];
+        brilho = 0.3f + 0.7f * (t - inicio) / (FIM_ACENDER - inicio);
+    }
+    if (brilho > 1.0f) brilho = 1.0f;
+
+    // Pouco brilho = retangulo preto quase opaco por cima do jogo
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 1.0f - brilho));
+}
+
+// Botao clicavel (definido mais abaixo, junto com o game over)
+static bool botaoClicavel(Rectangle r, const char *tecla, const char *texto, bool principal,
+                          float alfa, float pulso, float escala);
+
+AcaoTela desenharTelaVitoria(Jogo *jogo, EntradaRanking ranking[], int totalRanking) {
+    if (jogo == NULL) return ACAO_NENHUMA;
 
     float escala = hudEscala();
     int topo = (int)(50 * escala);
@@ -356,19 +396,12 @@ void desenharTelaVitoria(Jogo *jogo, EntradaRanking ranking[], int totalRanking)
         textoCentralizado(linhaRank, yRank + i * (int)(32 * escala), fonteEscalada(20, escala), corLinha);
     }
 
-    textoCentralizado("Pressione ESC para sair", GetScreenHeight() - (int)(50 * escala), fonteEscalada(20, escala), LIGHTGRAY);
-}
-
-// Tela de pausa: escurece o jogo (que continua desenhado atras, parado) e
-// mostra o aviso no meio, com as cores da marca
-void desenharTelaPausa(void) {
-    float escala = hudEscala();
-    int meio = GetScreenHeight() / 2;
-
-    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.7f));
-    textoCentralizado("PAUSADO", meio - (int)(50 * escala), fonteEscalada(60, escala), COR_HUD_LINHA);
-    textoCentralizado("Pressione P para continuar", meio + (int)(25 * escala), fonteEscalada(22, escala), RAYWHITE);
-    textoCentralizado("ESC: sair do jogo", meio + (int)(58 * escala), fonteEscalada(16, escala), GRAY);
+    // Botao SAIR (tecla ESC, tratada no main.c, ou clique), centralizado embaixo
+    float larguraBotao = 150.0f * escala, alturaBotao = 46.0f * escala;
+    Rectangle botaoSair = { ((float)GetScreenWidth() - larguraBotao) / 2.0f,
+                            (float)GetScreenHeight() - 50.0f * escala - alturaBotao, larguraBotao, alturaBotao };
+    bool clicouSair = botaoClicavel(botaoSair, "ESC", "SAIR", false, 1.0f, 1.0f, escala);
+    return clicouSair ? ACAO_SAIR : ACAO_NENHUMA;
 }
 
 // ---------------------------------------------------------------------------
@@ -674,8 +707,25 @@ static void desenharBotaoTecla(Rectangle r, const char *tecla, const char *texto
              (int)(r.y + (r.height - (float)fonte) / 2.0f), fonte, Fade(corTexto, alfa));
 }
 
-void desenharTelaGameOver(Jogo *jogo) {
-    if (jogo == NULL) return;
+// Desenha o botao e diz se ele foi clicado neste quadro.
+// O clique vale quando o botao esquerdo do mouse e apertado com a seta dentro
+// do retangulo do botao (CheckCollisionPointRec). Com a seta em cima, o botao
+// fica "aceso" (brilho cheio e contorno claro) para mostrar que da para clicar.
+static bool botaoClicavel(Rectangle r, const char *tecla, const char *texto, bool principal,
+                          float alfa, float pulso, float escala) {
+    bool mouseEmCima = CheckCollisionPointRec(GetMousePosition(), r);
+    desenharBotaoTecla(r, tecla, texto, principal, alfa, mouseEmCima ? 1.0f : pulso, escala);
+    if (mouseEmCima) {
+        float folga = 3.0f * escala;
+        DrawRectangleLinesEx((Rectangle){ r.x - folga, r.y - folga, r.width + 2.0f * folga, r.height + 2.0f * folga },
+                             (escala < 1.0f) ? 1.0f : 1.5f * escala, Fade(COR_CLARO, 0.8f * alfa));
+    }
+    return mouseEmCima && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+}
+
+AcaoTela desenharTelaGameOver(Jogo *jogo) {
+    if (jogo == NULL) return ACAO_NENHUMA;
+    AcaoTela acao = ACAO_NENHUMA;
 
     float escala = hudEscala();
     int largura = GetScreenWidth();
@@ -713,7 +763,8 @@ void desenharTelaGameOver(Jogo *jogo) {
     Rectangle quadro = { (float)colunaX - larguraColuna / 2.0f, meioY - 60.0f * escala, larguraColuna, 172.0f * escala };
     desenharResumo(jogo, quadro, t, escala);
 
-    // 5. Botoes R e ESC, centralizados embaixo do resumo
+    // 5. Botoes R e ESC, centralizados embaixo do resumo. Eles so aceitam
+    //    clique depois que aparecem (as teclas funcionam desde o inicio)
     float alfaBotoes = limitar01((t - 1.8f) / 0.4f);
     if (alfaBotoes > 0.0f) {
         float pulso = 0.5f + 0.5f * sinf(t * 4.0f);
@@ -721,13 +772,146 @@ void desenharTelaGameOver(Jogo *jogo) {
         float xInicio = (float)colunaX - (larguraR + vao + larguraEsc) / 2.0f;
         float yBotoes = meioY + 132.0f * escala;
         float alturaBotao = 46.0f * escala;
-        desenharBotaoTecla((Rectangle){ xInicio, yBotoes, larguraR, alturaBotao }, "R", "TENTAR DE NOVO",
-                           true, alfaBotoes, pulso, escala);
-        desenharBotaoTecla((Rectangle){ xInicio + larguraR + vao, yBotoes, larguraEsc, alturaBotao }, "ESC", "SAIR",
-                           false, alfaBotoes, pulso, escala);
+        if (botaoClicavel((Rectangle){ xInicio, yBotoes, larguraR, alturaBotao }, "R", "TENTAR DE NOVO",
+                          true, alfaBotoes, pulso, escala)) {
+            acao = ACAO_REINICIAR;
+        }
+        // ESC / MENU volta para a tela inicial (quem abre o menu e o main.c)
+        if (botaoClicavel((Rectangle){ xInicio + larguraR + vao, yBotoes, larguraEsc, alturaBotao }, "ESC", "MENU",
+                          false, alfaBotoes, pulso, escala)) {
+            acao = ACAO_MENU;
+        }
     }
 
     // 6. Riscos horizontais por cima de tudo (a mesma "tela de TV" da tela inicial)
     float alfaRiscos = 0.18f * limitar01(t / 0.8f);
     for (int ly = 0; ly < altura; ly += 4) DrawRectangle(0, ly, largura, 1, Fade(BLACK, alfaRiscos));
+    return acao;
+}
+
+// ---------------------------------------------------------------------------
+// Tela de pausa (issue #8)
+//
+// Mesmo estilo do game over, mas sem animacao de entrada (a pausa precisa
+// aparecer na hora): titulo laranja com sombra, quadro com o resumo da
+// partida, botoes CONTINUAR e SAIR e um lembrete discreto dos controles.
+// Nada e carregado aqui: tudo e desenhado com formas e texto.
+// ---------------------------------------------------------------------------
+
+// Vidas como coracoes: cheios (vermelhos) para as que restam e apagados
+// (cinza) para as perdidas. Desenha da direita para a esquerda a partir de
+// xDireita, para alinhar com os outros valores do quadro.
+static void desenharVidasResumo(float xDireita, float meio, int vidas, float tamanho, float escala) {
+    float raio = tamanho * 0.45f;
+    float passo = raio * 2.0f + 6.0f * escala;
+    for (int i = VIDAS_INICIAIS - 1; i >= 0; i--) {
+        float cx = xDireita - raio - passo * (float)(VIDAS_INICIAIS - 1 - i);
+        desenharCoracao(cx, meio, raio, (i < vidas) ? COR_VIDA : COR_VIDA_PERDIDA);
+    }
+}
+
+AcaoTela desenharTelaPausa(Jogo *jogo) {
+    if (jogo == NULL) return ACAO_NENHUMA;
+    AcaoTela acao = ACAO_NENHUMA;
+
+    float escala = hudEscala();
+    int largura = GetScreenWidth();
+    int altura = GetScreenHeight();
+    int cx = largura / 2;
+    float meioY = (float)altura / 2.0f;
+    float pulso = 0.5f + 0.5f * sinf((float)GetTime() * 4.0f);
+
+    // Fundo: o jogo continua desenhado atras, parado, so que escurecido
+    DrawRectangle(0, 0, largura, altura, Fade(BLACK, 0.78f));
+
+    // 1. Titulo com uma "sombra" laranja escura deslocada (mesma familia
+    //    de cores do glitch do game over, mas parada)
+    int fonteTitulo = fonteEscalada(64, escala);
+    int yTitulo = (int)(meioY - 206.0f * escala);
+    int sombra = (int)(4.0f * escala);
+    int xTitulo = cx - MeasureText("PAUSADO", fonteTitulo) / 2;
+    DrawText("PAUSADO", xTitulo + sombra, yTitulo + sombra, fonteTitulo, COR_LARANJA2);
+    DrawText("PAUSADO", xTitulo, yTitulo, fonteTitulo, COR_LARANJA);
+    textoCentralizado("O cronômetro e os robôs estão parados", (int)(meioY - 132.0f * escala), fonteEscalada(16, escala), COR_CINZA);
+
+    // 2. Quadro com o resumo da partida: icone, nome do dado e valor
+    Rectangle r = { (float)cx - 200.0f * escala, meioY - 104.0f * escala, 400.0f * escala, 206.0f * escala };
+    DrawRectangleRec(r, Fade(COR_HUD_FUNDO, 0.92f));
+    DrawRectangleLinesEx(r, 1.0f, Fade(COR_CINZA, 0.35f));
+    DrawRectangleRec((Rectangle){ r.x, r.y, r.width, (escala < 1.0f) ? 1.0f : 2.0f * escala }, COR_LARANJA);
+
+    float margem = 16.0f * escala;
+    int fonte = fonteEscalada(19, escala);
+    DrawText("RESUMO DA PARTIDA", (int)(r.x + margem), (int)(r.y + 12.0f * escala), fonteEscalada(15, escala), COR_LARANJA);
+
+    float tamanhoIcone = (float)fonte * 0.9f;
+    float xIcone = r.x + margem;
+    float xTexto = xIcone + tamanhoIcone + 12.0f * escala;
+    float xDireita = r.x + r.width - margem; // onde os valores terminam (alinhados na direita)
+
+    // Bateria entre 0 e 100% (a mesma conta do HUD)
+    float carga = (float)jogo->jogador.bateria / 100.0f;
+    if (carga < 0.0f) carga = 0.0f;
+    if (carga > 1.0f) carga = 1.0f;
+
+    const char *rotulos[5] = { "Andar", "Tempo de jogo", "Vidas", "Bateria", "Pendrive do andar" };
+    char valores[5][32];
+    snprintf(valores[0], sizeof(valores[0]), "%d/%d", jogo->andarAtual, TOTAL_ANDARES);
+    snprintf(valores[1], sizeof(valores[1]), "%s", formatarTempo(jogo->tempoJogo));
+    valores[2][0] = '\0'; // vidas sao desenhadas como coracoes, sem texto
+    snprintf(valores[3], sizeof(valores[3]), "%d%%", jogo->jogador.bateria);
+    snprintf(valores[4], sizeof(valores[4]), "%s", jogo->jogador.temPendrive ? "COLETADO" : "FALTA");
+
+    for (int i = 0; i < 5; i++) {
+        float y = r.y + 42.0f * escala + 32.0f * escala * (float)i;
+        float meio = y + (float)fonte / 2.0f;
+
+        // Icone de cada linha (os mesmos desenhos do HUD e do game over)
+        if (i == 0) {
+            desenharIconeEscada(xIcone, meio - tamanhoIcone / 2.0f, tamanhoIcone, COR_LARANJA);
+        } else if (i == 1) {
+            desenharIconeRelogio(xIcone + tamanhoIcone / 2.0f, meio, tamanhoIcone * 0.5f, COR_CLARO);
+        } else if (i == 2) {
+            desenharCoracao(xIcone + tamanhoIcone / 2.0f, meio, tamanhoIcone * 0.45f, COR_VIDA);
+        } else if (i == 3) {
+            desenharIconeBateria(xIcone, meio - tamanhoIcone * 0.3f, tamanhoIcone, tamanhoIcone * 0.6f, carga, escala);
+        } else {
+            desenharIconePendrive(xIcone, meio - tamanhoIcone * 0.3f, tamanhoIcone, tamanhoIcone * 0.6f,
+                                  jogo->jogador.temPendrive ? GREEN : GRAY);
+        }
+
+        DrawText(rotulos[i], (int)xTexto, (int)y, fonte, COR_CINZA);
+
+        if (i == 2) {
+            desenharVidasResumo(xDireita, meio, jogo->jogador.vidas, tamanhoIcone, escala);
+        } else {
+            Color corValor = (i == 4) ? (jogo->jogador.temPendrive ? GREEN : COR_CLARO) : COR_CLARO;
+            DrawText(valores[i], (int)xDireita - MeasureText(valores[i], fonte), (int)y, fonte, corValor);
+        }
+    }
+
+    // 3. Botoes: CONTINUAR (P ou ESC) e SAIR (Q). As teclas sao lidas no
+    //    main.c; aqui so o clique
+    float larguraContinuar = 230.0f * escala, larguraSair = 150.0f * escala, vao = 20.0f * escala;
+    float xInicio = (float)cx - (larguraContinuar + vao + larguraSair) / 2.0f;
+    float yBotoes = meioY + 120.0f * escala;
+    float alturaBotao = 46.0f * escala;
+    if (botaoClicavel((Rectangle){ xInicio, yBotoes, larguraContinuar, alturaBotao }, "P/ESC", "CONTINUAR",
+                      true, 1.0f, pulso, escala)) {
+        acao = ACAO_CONTINUAR;
+    }
+    if (botaoClicavel((Rectangle){ xInicio + larguraContinuar + vao, yBotoes, larguraSair, alturaBotao }, "Q", "SAIR",
+                      false, 1.0f, pulso, escala)) {
+        acao = ACAO_SAIR;
+    }
+
+    // 4. Lembrete dos controles, discreto, no rodape do bloco
+    const char *controles = (jogo->modoVisao == 0)
+        ? "WASD/setas: andar    V: visão 3D    L: lanterna    F11: tela cheia"
+        : "W/S: andar    A/D: girar    V: visão 2D    L: lanterna    F11: tela cheia";
+    textoCentralizado(controles, (int)(yBotoes + alturaBotao + 22.0f * escala), fonteEscalada(14, escala), Fade(COR_CINZA, 0.8f));
+
+    // Riscos horizontais (mesma "tela de TV" das outras telas)
+    for (int ly = 0; ly < altura; ly += 4) DrawRectangle(0, ly, largura, 1, Fade(BLACK, 0.18f));
+    return acao;
 }

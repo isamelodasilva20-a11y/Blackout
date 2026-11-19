@@ -14,12 +14,31 @@
 #include "ranking.h"
 
 
+// Volta a partida para o comeco (andar 1, vidas cheias, cronometro zerado).
+// Usada pela tecla R e pelo clique em "TENTAR DE NOVO" no game over.
+static void reiniciarPartida(Jogo *jogo) {
+    jogo->jogador.vidas = VIDAS_INICIAIS;
+    jogo->jogador.bateria = 0;
+    jogo->jogador.tempoLanterna = 0.0f;
+    jogo->jogador.tempoInvulneravel = 0.0f;
+    jogo->jogador.tempoCurtoCircuito = 0.0f;
+    jogo->jogador.temPendrive = false;
+    jogo->tempoJogo = 0.0f;
+    jogo->telaAtual = TELA_NORMAL;
+    mapaCarregarAndar(jogo, 1);
+}
+
 int main(void) {
     srand(time(NULL));
     // Janela redimensionavel: o jogador pode arrastar a borda ou maximizar,
     // e tudo (mapa, 3D, HUD e quiz) se ajusta ao novo tamanho
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(LARGURA_BASE, ALTURA_BASE, "Blackout");
+
+    // Por padrao, a raylib fecha a janela quando o ESC e apertado, em qualquer
+    // tela. Desligamos isso: o ESC passa a pausar durante a partida, e a saida
+    // e controlada pela variavel "sair" (o X da janela continua fechando).
+    SetExitKey(KEY_NULL);
     SetWindowMinSize(LARGURA_BASE / 2, ALTURA_BASE / 2);
     SetTargetFPS(60);
 
@@ -85,15 +104,30 @@ int main(void) {
     EntradaRanking listaRanking[MAX_RANKING];
     int totalRanking = 0;
 
-    if (carregou) telaInicialMostrar(jogo.jogador.nome, 32);
-    
+    // "sair" vira true quando o jogador escolhe sair (ESC na tela inicial, Q
+    // ou SAIR na pausa, ESC ou SAIR na vitoria). O laco principal termina e a
+    // limpeza do final roda normalmente. (No game over, ESC/MENU volta para a
+    // tela inicial; de la, ESC sai.)
+    bool sair = false;
+    if (carregou) sair = !telaInicialMostrar(jogo.jogador.nome, 32);
+
     InitAudioDevice();
     Music musicaFundo = LoadMusicStream("imagens/musica/running_out_of_time.ogg");
     musicaFundo.looping = true;
     SetMusicVolume(musicaFundo, 0.45f);
     PlayMusicStream(musicaFundo);
 
-    while (carregou && !WindowShouldClose()) {
+    // Instante em que a partida comecou, para o efeito da luz acendendo.
+    // Usa GetTime() (relogio real) e nao a soma de GetFrameTime(): o primeiro
+    // quadro inclui o tempo de carregar a musica e pularia a animacao.
+    double inicioLuz = GetTime();
+
+    // Pedido de voltar ao menu (ESC ou MENU no game over). O menu so e aberto
+    // no fim do quadro, depois do EndDrawing: a tela inicial tem o proprio
+    // laco de desenho e nao pode rodar dentro de um BeginDrawing aberto.
+    bool voltarMenu = false;
+
+    while (carregou && !sair && !WindowShouldClose()) {
         // --- Atualiza a musica de fundo e ajusta volume conforme a tela ---
         UpdateMusicStream(musicaFundo);
         if (pausado || jogo.telaAtual == TELA_GAME_OVER || venceu) {
@@ -109,9 +143,21 @@ int main(void) {
             ToggleBorderlessWindowed();
         }
 
-        // --- P pausa e continua (so durante o jogo, nao no quiz nem no fim) ---
-        if (IsKeyPressed(KEY_P) && !venceu && jogo.telaAtual == TELA_NORMAL) {
+        // --- P ou ESC pausa e continua (so durante o jogo, nao no quiz nem no fim) ---
+        // As duas teclas ficam neste unico lugar: se a tela de pausa tambem
+        // tratasse o ESC, a pausa abriria e fecharia no mesmo quadro.
+        if ((IsKeyPressed(KEY_P) || IsKeyPressed(KEY_ESCAPE)) && !venceu && jogo.telaAtual == TELA_NORMAL) {
             pausado = !pausado;
+        } else if (pausado && IsKeyPressed(KEY_Q)) {
+            // --- Q na pausa: sair do jogo ---
+            sair = true;
+        }
+
+        // --- ESC no game over: voltar ao menu inicial; na vitoria: sair do jogo ---
+        if (jogo.telaAtual == TELA_GAME_OVER && IsKeyPressed(KEY_ESCAPE)) {
+            voltarMenu = true;
+        } else if (venceu && IsKeyPressed(KEY_ESCAPE)) {
+            sair = true;
         }
 
         // --- Cronometro: soma o tempo de cada quadro ate o jogador vencer ou dar Game Over ---
@@ -292,28 +338,54 @@ int main(void) {
             // HUD por cima de tudo, na faixa de baixo (nos dois modos)
             desenharHUD(&jogo);
 
+            // Luz acendendo no comeco da partida: por cima do jogo e do HUD,
+            // mas embaixo das telas de quiz, pausa e game over
+            desenharLuzAcendendo((float)(GetTime() - inicioLuz));
+
             if (jogo.telaAtual == TELA_QUIZ) desenhar_quiz(&jogo);
 
-            if (venceu) desenharTelaVitoria(&jogo, listaRanking, totalRanking);
+            // As telas abaixo devolvem o botao clicado com o mouse (AcaoTela);
+            // as teclas equivalentes sao lidas aqui mesmo ou no comeco do laco
+            if (venceu) {
+                if (desenharTelaVitoria(&jogo, listaRanking, totalRanking) == ACAO_SAIR) sair = true;
+            }
 
             if (jogo.telaAtual == TELA_GAME_OVER) {
-                desenharTelaGameOver(&jogo);
-                if (IsKeyPressed(KEY_R)) {
-                    jogo.jogador.vidas = VIDAS_INICIAIS;
-                    jogo.jogador.bateria = 0;
-                    jogo.jogador.tempoLanterna = 0.0f;
-                    jogo.jogador.tempoInvulneravel = 0.0f;
-                    jogo.jogador.tempoCurtoCircuito = 0.0f;
-                    jogo.jogador.temPendrive = false;
-                    jogo.tempoJogo = 0.0f;
-                    jogo.telaAtual = TELA_NORMAL;
-                    mapaCarregarAndar(&jogo, 1);
+                AcaoTela acao = desenharTelaGameOver(&jogo);
+                if (IsKeyPressed(KEY_R) || acao == ACAO_REINICIAR) {
+                    reiniciarPartida(&jogo);
+                    inicioLuz = GetTime(); // a luz acende de novo ao recomecar
+                } else if (acao == ACAO_MENU) {
+                    voltarMenu = true;
                 }
             }
 
-            if (pausado) desenharTelaPausa();
+            if (pausado) {
+                AcaoTela acao = desenharTelaPausa(&jogo);
+                if (acao == ACAO_CONTINUAR) pausado = 0;
+                else if (acao == ACAO_SAIR) sair = true;
+            }
 
         EndDrawing();
+
+        // --- Voltar ao menu inicial (pedido no game over) ---
+        if (voltarMenu && !sair) {
+            voltarMenu = false;
+            // A tela inicial nao atualiza a musica (UpdateMusicStream); se ela
+            // continuasse tocando, o audio ficaria repetindo o mesmo trecho
+            StopMusicStream(musicaFundo);
+            reiniciarPartida(&jogo); // a proxima partida ja fica pronta no andar 1
+            pausado = 0;
+
+            // O nome digitado antes continua no campo (da para trocar).
+            // ENTER: musica do comeco e a luz acende de novo. ESC ou X: sai.
+            if (telaInicialMostrar(jogo.jogador.nome, 32)) {
+                PlayMusicStream(musicaFundo);
+                inicioLuz = GetTime();
+            } else {
+                sair = true;
+            }
+        }
     }
 
     // Limpeza: roda sempre, inclusive quando o andar não carregou

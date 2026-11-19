@@ -11,8 +11,8 @@
  * do predio falhando (a energia esta caindo: e o blackout).
  *
  * Ela tem o proprio laco de desenho e so devolve o controle quando o jogador
- * aperta ENTER (ou fecha a janela), por isso o main.c so precisa de uma
- * chamada antes do laco do jogo.
+ * aperta ENTER (devolve true: comecar) ou ESC / o X da janela (devolve false:
+ * sair), por isso o main.c so precisa de uma chamada antes do laco do jogo.
  *
  * Organizacao da tela (de cima para baixo):
  *   1. titulo BLACKOUT
@@ -29,6 +29,13 @@
 #define COR_QUADRO   (Color){  10,  12,  20, 255 } // fundo dos quadros (o mesmo do HUD)
 
 #define LETRAS_POR_SEGUNDO 45.0f // velocidade da "maquina de escrever"
+
+// Efeito ao apertar ENTER: a lampada pisca rapido, apaga e a tela escurece
+// ate ficar toda preta. O jogo comeca no escuro e "acende" (hud.c), entao a
+// passagem de uma tela para a outra parece a energia caindo e voltando.
+#define TEMPO_PISCANDO  0.35f // segundos piscando antes de apagar de vez
+#define TEMPO_ESCURECER 0.50f // segundos para a tela ir de apagada a toda preta
+#define TEMPO_APAGAR    1.00f // duracao total (o resto fica no preto)
 #define TOP_RANKING 5            // quantos recordes aparecem no quadro
 
 // A historia, uma linha de tela por item ("" = linha em branco)
@@ -152,7 +159,7 @@ static void formatarTempo(float segundos, char *destino, int tamanho) {
 // As imagens sao carregadas uma unica vez quando a tela abre e descarregadas
 // quando ela fecha (antes de o jogo comecar).
 typedef struct {
-    Texture2D professor;
+    Texture2D professores[3]; // os tres professores do jogo (professor_1/2/3_normal.png)
     Texture2D roboVermelho;
     Texture2D roboLaranja;
 } Personagens;
@@ -166,13 +173,17 @@ static Texture2D carregarImagem(const char *caminho) {
 }
 
 static void personagensCarregar(Personagens *p) {
-    p->professor    = carregarImagem("imagens/professor_2_normal.png");
-    p->roboVermelho = carregarImagem("imagens/robo_vermelho_frente.png");
-    p->roboLaranja  = carregarImagem("imagens/robo_laranja_frente.png");
+    p->professores[0] = carregarImagem("imagens/professor_1_normal.png");
+    p->professores[1] = carregarImagem("imagens/professor_2_normal.png");
+    p->professores[2] = carregarImagem("imagens/professor_3_normal.png");
+    p->roboVermelho   = carregarImagem("imagens/robo_vermelho_frente.png");
+    p->roboLaranja    = carregarImagem("imagens/robo_laranja_frente.png");
 }
 
 static void personagensDescarregar(Personagens *p) {
-    if (p->professor.id > 0)    UnloadTexture(p->professor);
+    for (int i = 0; i < 3; i++) {
+        if (p->professores[i].id > 0) UnloadTexture(p->professores[i]);
+    }
     if (p->roboVermelho.id > 0) UnloadTexture(p->roboVermelho);
     if (p->roboLaranja.id > 0)  UnloadTexture(p->roboLaranja);
 }
@@ -232,9 +243,19 @@ static Rectangle desenharPersonagens(const Personagens *p, float luz, float temp
     float flutuaVermelho = sinf(tempo * 2.0f) * 4.0f * e;
     float flutuaLaranja = sinf(tempo * 1.6f + 1.3f) * 4.0f * e;
 
-    // Esquerda: o professor
-    float altProfessor = alturaQueCabe(p->professor, 220.0f * e, lado * 0.8f);
-    desenharPersonagem(p->professor, xEsquerda, yPiso, altProfessor, 0.0f, tinta, luz);
+    // Esquerda: os tres professores em grupo. O professor 2 fica na frente,
+    // no centro; o 1 e o 3 ficam atras, um de cada lado, menores, um pouco
+    // mais altos e mais escuros (perspectiva: parecem estar mais longe).
+    // Os de tras sao desenhados primeiro, para o da frente ficar por cima.
+    float altFrente = alturaQueCabe(p->professores[1], 235.0f * e, lado * 0.62f);
+    float altFundo = altFrente * 0.78f;
+    float afastamento = lado * 0.25f;          // distancia lateral dos de tras
+    float yFundo = yPiso - altFrente * 0.16f;  // os de tras "pisam" mais acima
+    desenharPersonagem(p->professores[0], xEsquerda - afastamento, yFundo, altFundo, 0.0f,
+                       iluminar(tinta, 0.6f), luz * 0.6f);
+    desenharPersonagem(p->professores[2], xEsquerda + afastamento, yFundo, altFundo, 0.0f,
+                       iluminar(tinta, 0.6f), luz * 0.6f);
+    desenharPersonagem(p->professores[1], xEsquerda, yPiso, altFrente, 0.0f, tinta, luz);
 
     // Direita: o robo vermelho na frente e o laranja atras, menor, mais alto
     // e mais escuro (perspectiva: parece estar mais longe), formando um grupo
@@ -342,8 +363,11 @@ static void desenharRanking(Rectangle r, const EntradaRanking lista[], int total
 
 // ---- Desenho ---------------------------------------------------------------
 
+// "escuridao" vai de 0 (normal) a 1 (tela toda preta): usada no efeito de
+// apagar a luz depois do ENTER
 static void desenharTela(const Lampada *lampada, float tempo, const char *nomeJogador,
-                         const Personagens *personagens, const EntradaRanking ranking[], int totalRanking) {
+                         const Personagens *personagens, const EntradaRanking ranking[], int totalRanking,
+                         float escuridao) {
     int largura = GetScreenWidth(), altura = GetScreenHeight();
     float e = hudEscala();
     float luz = lampada->brilho;
@@ -462,9 +486,24 @@ static void desenharTela(const Lampada *lampada, float tempo, const char *nomeJo
 
     // Por ultimo (por cima da penumbra), os olhos do robo, que brilham no escuro
     desenharOlhosRobo(roboVermelho, luz, e);
+
+    // Efeito de apagar: um retangulo preto por cima de tudo, cada vez mais
+    // opaco (os olhos do robo sao a ultima coisa a sumir)
+    if (escuridao > 0.0f) DrawRectangle(0, 0, largura, altura, Fade(BLACK, escuridao));
 }
 
-void telaInicialMostrar(char *nomeJogador, int maxChars) {
+// Brilho da lampada durante o efeito de apagar (t = segundos desde o ENTER):
+// primeiro alterna rapido entre fraca e forte (a energia caindo), depois apaga
+static float brilhoApagando(float t) {
+    if (t < TEMPO_PISCANDO) return (((int)(t * 22.0f)) % 2 == 1) ? 0.15f : 0.9f;
+    return 0.0f;
+}
+
+bool telaInicialMostrar(char *nomeJogador, int maxChars) {
+    // Comeca como "sair": so vira true se o jogador apertar ENTER. Assim,
+    // fechar pelo X da janela ou pelo ESC devolve false e o main.c vai direto
+    // para a limpeza, sem comecar a partida.
+    bool comecar = false;
     Lampada lampada = { 1.0f, 0.5f, 0 };
     float tempo = 0.0f;
     int tamanhoAtual = (int)strlen(nomeJogador);
@@ -475,12 +514,37 @@ void telaInicialMostrar(char *nomeJogador, int maxChars) {
     EntradaRanking ranking[MAX_RANKING];
     int totalRanking = rankingCarregar(ranking, MAX_RANKING); // 0 se ranking.txt nao existir
 
+    // Depois do ENTER a tela nao fecha na hora: roda o efeito de apagar a luz
+    bool apagando = false;
+    float tempoApagando = 0.0f;
+
     while (!WindowShouldClose()) {
         float dt = GetFrameTime();
         tempo += dt;
-        atualizarLampada(&lampada, dt);
 
         if (IsKeyPressed(KEY_F11)) ToggleBorderlessWindowed();
+
+        if (apagando) {
+            // Durante o efeito, o teclado nao digita mais nada: so a luz muda
+            tempoApagando += dt;
+            lampada.brilho = brilhoApagando(tempoApagando);
+            float escuridao = (tempoApagando - TEMPO_PISCANDO) / TEMPO_ESCURECER;
+            if (escuridao < 0.0f) escuridao = 0.0f;
+            if (escuridao > 1.0f) escuridao = 1.0f;
+
+            BeginDrawing();
+                desenharTela(&lampada, tempo, nomeJogador, &personagens, ranking, totalRanking, escuridao);
+            EndDrawing();
+
+            // Terminou (a tela ja esta toda preta): agora sim comeca o jogo
+            if (tempoApagando >= TEMPO_APAGAR) {
+                comecar = true;
+                break;
+            }
+            continue;
+        }
+
+        atualizarLampada(&lampada, dt);
 
         // Captura caracteres digitados (evita ';' para não quebrar o formato do arquivo)
         int tecla = GetCharPressed();
@@ -500,13 +564,22 @@ void telaInicialMostrar(char *nomeJogador, int maxChars) {
         }
 
         // Só inicia com ENTER (espaço agora funciona para digitar nome composto!)
-        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) break;
+        // ENTER comeca o efeito de apagar a luz (o jogo comeca quando ele terminar)
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
+            apagando = true;
+            tempoApagando = 0.0f;
+        }
+
+        // ESC sai do jogo. O fechamento automatico do ESC foi desligado no
+        // main.c (SetExitKey), entao a saida e tratada aqui, de forma explicita
+        if (IsKeyPressed(KEY_ESCAPE)) break;
 
         BeginDrawing();
-            desenharTela(&lampada, tempo, nomeJogador, &personagens, ranking, totalRanking);
+            desenharTela(&lampada, tempo, nomeJogador, &personagens, ranking, totalRanking, 0.0f);
         EndDrawing();
     }
 
     // As texturas da tela inicial nao sao usadas no jogo: libera aqui mesmo
     personagensDescarregar(&personagens);
+    return comecar;
 }
