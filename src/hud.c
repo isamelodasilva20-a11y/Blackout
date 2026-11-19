@@ -138,7 +138,7 @@ static const char *formatarTempo(float segundos) {
 // ---------------------------------------------------------------------------
 
 static void desenharAlertaProximidade(Jogo *jogo) {
-    if (jogo == NULL || jogo->robos == NULL) return;
+    if (jogo == NULL || !jogo->modoVisao || jogo->robos == NULL) return; //so no 3D
 
     // Encontra a distancia do robo ativo mais proximo do jogador
     float menorDist = 9999.0f;

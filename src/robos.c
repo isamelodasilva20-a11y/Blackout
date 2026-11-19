@@ -511,26 +511,20 @@ void checarVitoriaDerrotaRobos(Jogo *jogo) {
             float dy = atual->posicaoReal.y - (float)jogo->jogador.posicao.linha;
             float dist = sqrtf(dx * dx + dy * dy);
 
-            if (dist <= 0.65f) {
+            if (dist <= 0.75f) {
                 if (atual->tipo == ROBO_CINZA && jogo->andarAtual == 3) {
                     jogo->jogador.tempoCurtoCircuito = 4.0f;
                 } else {
-                    if (jogo->jogador.bateria > 0) {
-                        jogo->jogador.bateria = 0;
-                        jogo->jogador.tempoLanterna = 0.0f;
-                    } else {
-                        jogo->jogador.vidas--;
-                        if (jogo->jogador.vidas <= 0) {
-                            jogo->jogador.vidas = 0;
-                            jogo->telaAtual = TELA_GAME_OVER;
-                            return;
-                        }
+                    jogo->jogador.vidas--;
+                    if (jogo->jogador.vidas <= 0) {
+                        jogo->jogador.vidas = 0;
+                        jogo->telaAtual = TELA_GAME_OVER;
+                        return;
                     }
                 }
 
                 jogo->jogador.tempoInvulneravel = 3.0f;
 
-                // Agora todos os robos (incluindo o roxo) recuam 5 passos depois de bater
                 roboQueBateu = atual;
                 passosRecuo = 5;
                 atual->posicaoAnterior = atual->posicao;
