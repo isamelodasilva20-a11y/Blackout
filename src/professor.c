@@ -193,13 +193,20 @@ void desenhar_quiz(Jogo *jogo) {
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.7f));
 
     // tela principal: professor à esquerda, aluno à direita e a caixa de fala no meio
-    int L = GetScreenWidth();
+        int L = GetScreenWidth();
     int A = GetScreenHeight();
-    float altPers = A * 0.45f;
-    Rectangle destProf  = { L * 0.03f, A - altPers - A * 0.05f, altPers, altPers };
-    Rectangle destAluno = { L - L * 0.03f - altPers, destProf.y, altPers, altPers };
-    float xCaixa = destProf.x + destProf.width + L * 0.02f;
-    Rectangle caixa = { xCaixa, A * 0.40f, destAluno.x - L * 0.02f - xCaixa, A * 0.50f };
+    float altPers   = A * 0.40f;
+    float largCaixa = L * 0.42f;
+    float altCaixa  = A * 0.40f;
+    float espaco    = L * 0.02f;
+
+    float larguraTotal = altPers + espaco + largCaixa + espaco + altPers;
+    float xInicio = (L - larguraTotal) / 2.0f;
+    float yBase   = (A + altPers) / 2.0f;
+
+    Rectangle destProf  = { xInicio, yBase - altPers, altPers, altPers };
+    Rectangle caixa     = { xInicio + altPers + espaco, yBase - altCaixa, largCaixa, altCaixa };
+    Rectangle destAluno = { caixa.x + largCaixa + espaco, yBase - altPers, altPers, altPers };
 
     // efeito de digitação: a pergunta aparece 40 letras por segundo; [Espaço] pula pro final
     const char *pergunta = jogo->professor.pergunta;
