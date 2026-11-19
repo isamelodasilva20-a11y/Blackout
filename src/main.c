@@ -297,7 +297,7 @@ int main(void) {
             if (venceu) desenharTelaVitoria(&jogo, listaRanking, totalRanking);
 
             if (jogo.telaAtual == TELA_GAME_OVER) {
-                desenharTelaGameOver();
+                desenharTelaGameOver(&jogo);
                 if (IsKeyPressed(KEY_R)) {
                     jogo.jogador.vidas = VIDAS_INICIAIS;
                     jogo.jogador.bateria = 0;
@@ -333,6 +333,7 @@ int main(void) {
         }
     }
     jogoDescarregar(&jogo);
+    hudDescarregar(); // textura do robo cinza usada no game over
 
     CloseWindow();
     return carregou ? 0 : 1;

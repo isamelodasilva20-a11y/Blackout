@@ -26,9 +26,13 @@ void desenharTelaVitoria(struct Jogo *jogo, EntradaRanking ranking[], int totalR
 void desenharTelaPausa(void);
 
 // Tela inicial com a historia do jogo (telainicial.c). So volta quando o
-// jogador aperta ENTER/ESPACO ou fecha a janela.
+// jogador aperta ENTER ou fecha a janela.
 void telaInicialMostrar(char *nomeJogador, int maxChars);
 
-void desenharTelaGameOver(void);
+// Game over animado com o resumo da partida (andar, tempo e pendrives do jogo)
+void desenharTelaGameOver(struct Jogo *jogo);
+
+// Libera a textura que o game over carrega (robo cinza). Chamar ao fechar o jogo.
+void hudDescarregar(void);
 
 #endif
