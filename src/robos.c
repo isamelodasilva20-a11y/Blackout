@@ -394,6 +394,11 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
             float vel = atual->velocidade;
             if (vel <= 0.0f) vel = 4.0f;
 
+            // se for o robo roxo e o professor ja foi ajudado, ele corre mais rapido atras do aluno
+            if (atual->tipo == ROBO_TEMPORIZADOR && jogo->professor.ajudado == true) {
+                vel = vel * 1.7f;
+            }
+
             if (atual->estado == ESTADO_FUGINDO) {
                 vel = vel * 0.85f;
             } else if (atual == roboQueBateu && passosRecuo > 0) {
@@ -490,6 +495,10 @@ void checarVitoriaDerrotaRobos(Jogo *jogo) {
                 jogo->telaAtual = TELA_GAME_OVER;
                 return;
             }
+        }
+        if (atual->tipo == ROBO_TEMPORIZADOR && jogo->professor.ajudado == false) {
+            atual = atual->next;
+            continue;
         }
 
         if (atual->estado != ESTADO_FUGINDO && atual->tempoParalisado <= 0.0f &&
