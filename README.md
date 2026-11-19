@@ -1,30 +1,37 @@
 # Blackout
 
-A CESAR School foi invadida por hackers e a energia do prédio está falhando. Os arquivos do seu TCC sumiram dos servidores, e só os professores da cadeira de PIF têm os backups. Para recuperá-los, você precisa atravessar os três andares do prédio, encontrar o professor de cada andar, responder à pergunta dele e subir pela escada. No caminho, os robôs do professor Mineiro, modificados pelos hackers, tentam te pegar e destruir os arquivos.
+A CESAR School foi invadida por hackers e a energia do prédio está falhando. Você é um aluno do 8º periodo e seus arquivos do TCC sumiram dos servidores, mas por sorte, os professores de PIF estavam com cópias do seu projeto para análise de feedbacks. Mas para recuperá-los, você precisa atravessar os três andares do prédio, encontrar o professor de cada andar, responder à pergunta dele e fugir pela escada de incêndio. MAs cuidado! os Hackers conseguiram invadir o sistema do Tiradentes, e corromper os robôs do professor Mineiro, e agora o objetivo deles é tentar te pegar e destruir os arquivos.
 
 ## Como jogar
 
 Cada andar é um labirinto de corredores e salas. O objetivo em todos é o mesmo:
 
-1. Encontre o professor do andar (marcado com um `!` amarelo) e pare na casa dele.
-2. Abre um quiz com uma pergunta de múltipla escolha. Se errar, é só tentar de novo. Ao acertar, você recebe o pendrive e a sua bateria é recarregada.
+1. Encontre o professor do andar (marcado com um `!` amarelo) e interaja com ele.
+2. Responda o quiz de múltipla escolha. Se errar, é só tentar de novo. Ao acertar, você recebe o pendrive e a sua bateria é recarregada.
 3. A escada do andar, que antes estava cinza, fica verde. Vá até ela para subir.
+
+Mas cuidado! cada andar esconde suas peculiaridades...
+1º andar: os robôs são agressivos, se você não utilizar sua lanterna poderá ser gravemente ferido, e o robo roxo quer fazer de tudo para encontrar seu professor e destruir o pendrive.
+
+2º andar: A agressão é iminente, e os robos perceberam que não resistiriam a sua lanterna, então o robo cinza está disposto a destruir todas as baterias disponiveis, você deverá ser mais rápido!
+
+3º andar: Eles evoluiram de novo! e agora perceberam que a bateria não é o unico problema, você é ágil! então o robo cinza agora soltará um efeito cerebral capaz de dar um curto-circuito no sue cérebro, seus movimentos não serão mais os mesmos...
 
 Depois do terceiro andar, aparece a tela de vitória com o tempo total da partida.
 
-**Baterias e lanterna.** Há baterias espalhadas pelos andares. Você só consegue pegar uma quando a carga atual está zerada. Cada bateria enche a carga e acende a lanterna por 10 segundos, e a carga vai caindo nesse tempo. Enquanto a lanterna está acesa, os robôs vermelho e laranja fogem de você, ficam azulados e andam mais devagar.
+**Baterias e lanterna.** Para cada andar existirão baterias espalhadas pelos andares. Você só consegue pegar uma quando a carga atual está complemente zerada. Cada bateria enche a carga em 100% e para acender a lanterna, é necessário apertar a tecla E, mas cuidaddo! a lanterna so aguenta 10 segundos ligada. Enquanto a lanterna está acesa, todos os robôs, exceto o roxo, fogem de você! ficam azulados e andam mais devagar,, mas apenas qunaod se aproximam da sua luz.
 
-**Vidas.** Você começa com 3 corações. Se um robô vermelho ou laranja encostar em você e houver carga na bateria, a carga é gasta no lugar de um coração. Sem carga, você perde um coração. Depois de cada batida, você fica um instante invulnerável. Sem corações, é game over.
+**Vidas.** Você começa com 3 corações. Se algum robô encostar em você e a lanterna estiver desligada, um coração é sacrificado. Sem corações, é game over.
 
-**Game over** acontece quando os corações acabam ou quando o robô roxo alcança o professor antes de você responder ao quiz. Na tela de game over, `R` reinicia a partida a partir do andar 1.
+**Game over** acontece quando os corações acabam ou quando o robô roxo alcança o professor antes de você responder ao quiz. Na tela de game over, `R` reinicia a partida e volta para o 1º andar.
 
-**Robôs.** Todos andam pelo caminho mais curto do labirinto (busca em largura), desviando de paredes e móveis. A cada andar eles ficam um pouco mais rápidos.
+**Robôs.** Todos andam pelo caminho mais curto do labirinto em busca de seu obejetivo(para o robo roxo é o professor, e para o resto é você!), a cada andar eles ficam um pouco mais rápidos.
 
 | Robô | Comportamento |
 |---|---|
 | Vermelho (perseguidor) | Vai direto atrás de você. |
-| Laranja (interceptador) | Mira duas casas à frente da direção em que você está andando, para te cercar. Quando está a até duas casas de você, vai direto em você. |
-| Roxo (temporizador) | Ignora você e vai até o professor. Se chegar lá antes de você responder ao quiz, é game over. Se você encostar nele com carga na bateria, ele fica parado por 5 segundos e a carga é gasta. |
+| Laranja (interceptador) | planeja a melhor rota para te emboscar|
+| Roxo (temporizador) | Ignora você e vai até o professor. Se chegar lá antes de você responder ao quiz, é game over. Se você encostar nele com carga na bateria, ele fica parado por 5 segundos e a carga é gasta, e se você responder ao quiz, ele passa a perseguir você. |
 
 **Tela.** A barra de baixo mostra os corações, o andar, a carga da bateria, o pendrive, a lanterna, o cronômetro e o objetivo atual. Quando um robô chega a 8 casas de você, um alerta de proximidade pisca no topo da tela, primeiro em amarelo, depois em laranja e, bem perto, em vermelho. O jogo tem duas visões: o mapa visto de cima (2D) e a primeira pessoa (3D), com um minimapa no canto.
 
@@ -39,6 +46,7 @@ Depois do terceiro andar, aparece a tela de vitória com o tempo total da partid
 | Visão 3D | `A` / `D` ou setas laterais | Girar 90 graus para a esquerda / direita |
 | Durante o jogo | `V` | Alternar entre a visão 2D e a 3D |
 | Durante o jogo | `P` | Pausar e continuar |
+| Durante o jogo | `L` | Ativar lanterna |
 | Quiz | `A` `B` `C` `D` | Responder |
 | Game over | `R` | Recomeçar do andar 1 |
 | Qualquer tela | `F11` | Tela cheia |
