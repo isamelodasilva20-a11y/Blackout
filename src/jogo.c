@@ -11,13 +11,6 @@ void jogoCarregar(Jogo *jogo) {
 
     // --- CARREGAMENTO DAS TEXTURAS DOS ROBÔS ---
     // Interceptador (Laranja)
-    jogo->texRoboInterceptador[0] = LoadTexture("imagens/robo_laranja.png");           // Cima (Costas)
-    jogo->texRoboInterceptador[1] = LoadTexture("imagens/robo_laranja_frente.png");    // Baixo (Frente)
-    jogo->texRoboInterceptador[2] = LoadTexture("imagens/robo_laranja_lado_esq.png"); // Esquerda
-    jogo->texRoboInterceptador[3] = LoadTexture("imagens/robo_laranja_lado_dir.png"); // Direita
-
-    // Perseguidor (Vermelho)
-    // Interceptador (Laranja)
     jogo->texRoboInterceptador[0] = LoadTexture("imagens/robo_laranja_frente.png");   // Cima (Costas)
     jogo->texRoboInterceptador[1] = LoadTexture("imagens/robo_laranja.png");          // Baixo (Frente)
     jogo->texRoboInterceptador[2] = LoadTexture("imagens/robo_laranja_lado_esq.png"); // Esquerda
@@ -34,6 +27,14 @@ void jogoCarregar(Jogo *jogo) {
     jogo->texRoboTemporizador[1] = LoadTexture("imagens/robo_transparente.png");
     jogo->texRoboTemporizador[2] = LoadTexture("imagens/robo_roxo_lado.png");
     jogo->texRoboTemporizador[3] = LoadTexture("imagens/robo_roxo_lado.png");
+
+    // Cinza 
+    // Cinza (indices: 0 = costas, 1 = frente, 2 = esquerda, 3 = direita, 4 = frente animado)
+    jogo->texRoboCinza[0] = LoadTexture("imagens/robo_cinza_costas.png");
+    jogo->texRoboCinza[1] = LoadTexture("imagens/robo_cinza_acenando.png");
+    jogo->texRoboCinza[2] = LoadTexture("imagens/robo_cinza_esquerda_2.png");
+    jogo->texRoboCinza[3] = LoadTexture("imagens/robo_cinza_direita.png");
+    jogo->texRoboCinza[4] = LoadTexture("imagens/robo_cinza_acenando_2.png");
        
 }   
 

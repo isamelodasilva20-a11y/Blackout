@@ -256,7 +256,8 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
         float distJogador = sqrtf(dxJog * dxJog + dyJog * dyJog);
 
         if (atual->tipo == ROBO_PERSEGUIDOR || atual->tipo == ROBO_INTERCEPTADOR ||
-            (atual->tipo == ROBO_CINZA && jogo->andarAtual == 1)) {
+            (atual->tipo == ROBO_CINZA && jogo->andarAtual == 1) ||
+            (atual->tipo == ROBO_TEMPORIZADOR && jogo->professor.ajudado)) {
             
             // Ao entrar no raio de 4 quadradinhos com a lanterna ligada, ativa/renova 10s de fuga
             if (lanternaAtiva && distJogador <= 4.0f) {
@@ -396,7 +397,7 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
             if (vel <= 0.0f) vel = 4.0f;
 
             // se for o robo roxo e o professor ja foi ajudado, ele corre mais rapido atras do aluno
-            if (atual->tipo == ROBO_TEMPORIZADOR && jogo->professor.ajudado == true) {
+            if (atual->tipo == ROBO_TEMPORIZADOR && jogo->professor.ajudado == true && atual->estado != ESTADO_FUGINDO) {
                 vel = vel * 1.7f;
             }
 
@@ -513,7 +514,7 @@ void checarVitoriaDerrotaRobos(Jogo *jogo) {
 
             if (dist <= 0.75f) {
                 if (atual->tipo == ROBO_CINZA && jogo->andarAtual == 3) {
-                    jogo->jogador.tempoCurtoCircuito = 4.0f;
+                    jogo->jogador.tempoCurtoCircuito = 20.0f;
                 } else {
                     jogo->jogador.vidas--;
                     if (jogo->jogador.vidas <= 0) {
