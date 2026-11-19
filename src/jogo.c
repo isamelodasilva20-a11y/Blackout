@@ -17,23 +17,23 @@ void jogoCarregar(Jogo *jogo) {
     jogo->texRoboInterceptador[3] = LoadTexture("imagens/robo_laranja_lado_dir.png"); // Direita
 
     // Perseguidor (Vermelho)
+    // Interceptador (Laranja)
+    jogo->texRoboInterceptador[0] = LoadTexture("imagens/robo_laranja_frente.png");   // Cima (Costas)
+    jogo->texRoboInterceptador[1] = LoadTexture("imagens/robo_laranja.png");          // Baixo (Frente)
+    jogo->texRoboInterceptador[2] = LoadTexture("imagens/robo_laranja_lado_esq.png"); // Esquerda
+    jogo->texRoboInterceptador[3] = LoadTexture("imagens/robo_laranja_lado_dir.png"); // Direita
+
+    // Perseguidor (Vermelho)
     jogo->texRoboPerseguidor[0]   = LoadTexture("imagens/robo_vermelho_costas.png");    // Cima (Costas)
     jogo->texRoboPerseguidor[1]   = LoadTexture("imagens/robo_vermelho_frente.png");    // Baixo (Frente)
     jogo->texRoboPerseguidor[2]   = LoadTexture("imagens/robo_vermelho_lado_dir.png"); // Esquerda
     jogo->texRoboPerseguidor[3]   = LoadTexture("imagens/robo_vermelho_lado_dir.png"); // Direita
 
     // Temporizador (Roxo)
-    jogo->texRoboTemporizador[0] = LoadTexture("imagens/robo_roxo_costas.png");         
-    jogo->texRoboTemporizador[1] = LoadTexture("imagens/robo_roxo_lado.png");           
-    jogo->texRoboTemporizador[2] = LoadTexture("imagens/robo_roxo_lado.png");           
+    jogo->texRoboTemporizador[0] = LoadTexture("imagens/robo_roxo_costas.png");
+    jogo->texRoboTemporizador[1] = LoadTexture("imagens/robo_transparente.png");
+    jogo->texRoboTemporizador[2] = LoadTexture("imagens/robo_roxo_lado.png");
     jogo->texRoboTemporizador[3] = LoadTexture("imagens/robo_roxo_lado.png");
-    
-    // Robô Cinza
-    jogo->texRoboCinza[0] = LoadTexture("imagens/robo_cinza_costas.png");     // [0] Cima (Costas)[cite: 4]
-    jogo->texRoboCinza[1] = LoadTexture("imagens/robo_cinza_acenando.png");   // [1] Baixo (Frente - frame 1)[cite: 4]
-    jogo->texRoboCinza[2] = LoadTexture("imagens/robo_cinza_esquerda_2.png"); // [2] Esquerda[cite: 4]
-    jogo->texRoboCinza[3] = LoadTexture("imagens/robo_cinza_direita.png");    // [3] Direita[cite: 4]
-    jogo->texRoboCinza[4] = LoadTexture("imagens/robo_cinza_acenando_2.png"); // [4] Baixo (Frente - frame 2)[cite: 4]
        
 }   
 

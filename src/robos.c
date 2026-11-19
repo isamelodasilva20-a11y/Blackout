@@ -11,9 +11,10 @@ Robo *roboQueBateu = NULL;
 int passosRecuo = 0;
 
 int obterIndiceDirecaoRobo(Vector2 direcao) {
-    if (direcao.y < 0) return 1;
-    if (direcao.x != 0) return 2;
-    return 0;
+    if (direcao.y < 0) return 0; // subindo (costas)
+    if (direcao.x < 0) return 2; // esquerda
+    if (direcao.x > 0) return 3; // direita
+    return 1;                    // descendo (frente)
 }
 
 void robosAdicionar(Robo **cabeca, Posicao posicao, TipoRobo tipo, int andar) {
@@ -390,7 +391,7 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
         float dy = (float)atual->posicao.linha - atual->posicaoReal.y;
         float dist = sqrtf(dx * dx + dy * dy);
 
-        if (dist > 0.001f) {
+        if (dist > 0.05f) {
             float vel = atual->velocidade;
             if (vel <= 0.0f) vel = 4.0f;
 

@@ -494,11 +494,13 @@ static void desenharRobos3D(Jogo *jogo, Camera3D camera) {
 
         // Escolhe o sprite (Frente, Costas ou Lado) conforme o angulo para a camera
         // Escolhe o sprite (Frente, Costas ou Lado) conforme o angulo para a camera
+        // Escolhe o sprite conforme a direcao do robo em relacao a camera:
+        // [0] = Costas, [1] = Frente, [2] = Esquerda, [3] = Direita
         float toCamX = cam.atual.x - cx;
         float toCamZ = cam.atual.z - cz;
         float distCam = sqrtf(toCamX * toCamX + toCamZ * toCamZ);
 
-        int idxTex = 0;
+        int idxTex = 1; // Padrao: Frente
         float flipX = 1.0f;
 
         if (distCam > 0.001f && (r->direcao.x != 0.0f || r->direcao.y != 0.0f)) {
@@ -507,13 +509,22 @@ static void desenharRobos3D(Jogo *jogo, Camera3D camera) {
 
             float dot = r->direcao.x * toCamX + r->direcao.y * toCamZ;
             if (dot > 0.25f) {
-                idxTex = 0; // Frente (vindo na direcao do jogador)
+                idxTex = 1; // Frente (vindo na direcao do jogador)
             } else if (dot < -0.35f) {
-                idxTex = 1; // Costas (indo para longe do jogador)
+                idxTex = 0; // Costas (indo para longe do jogador)
             } else {
-                idxTex = 2; // Lado
                 float cross = r->direcao.x * toCamZ - r->direcao.y * toCamX;
-                flipX = (cross > 0.0f) ? -1.0f : 1.0f;
+                if (cross > 0.0f) {
+                    idxTex = 3; // Direita na tela
+                } else {
+                    idxTex = 2; // Esquerda na tela
+                }
+
+                // O robo vermelho e o roxo usam a mesma textura de lado nos indices 2 e 3,
+                // entao espelha quando for para o outro lado
+                if ((r->tipo == ROBO_PERSEGUIDOR || r->tipo == ROBO_TEMPORIZADOR) && cross < 0.0f) {
+                    flipX = -1.0f;
+                }
             }
         }
 
