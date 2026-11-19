@@ -10,6 +10,12 @@
 // Escala para o sprite ficar com a mesma altura visual do jogador 
 #define ESCALA_SPRITE 1.4
 
+// Quanto tempo (em segundos) a resposta do professor fica na tela depois que
+// o aluno escolhe a alternativa. A fala de acerto e mais longa (entrega do
+// pendrive + aviso dos robos + pilha), entao fica mais tempo que a de erro.
+#define TEMPO_FALA_ACERTO 5.0
+#define TEMPO_FALA_ERRO   3.5
+
 typedef struct {
     const char *nome;
     const char *pergunta;
@@ -292,8 +298,10 @@ void desenhar_quiz(Jogo *jogo) {
             }
         }
 
-        // conta um tempo pra voltar pra tela inicial
-        if (GetTime() - jogo->tempoInicioFeedback >= 1.5) {
+        // conta um tempo pra voltar pra tela inicial (tempo de leitura da fala:
+        // maior no acerto, que tem mais texto)
+        double tempoLeitura = (jogo->estadoFeedback == FEEDBACK_ACERTOU) ? TEMPO_FALA_ACERTO : TEMPO_FALA_ERRO;
+        if (GetTime() - jogo->tempoInicioFeedback >= tempoLeitura) {
             if (jogo->estadoFeedback == FEEDBACK_ACERTOU) { 
                 jogo->telaAtual = TELA_NORMAL;
             }

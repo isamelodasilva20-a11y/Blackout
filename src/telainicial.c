@@ -3,8 +3,9 @@
 #include <string.h>
 #include "estrutura.h"
 #include "raylib.h"
-#include "hud.h"
+#include "hud.h"      // hudEscala, textoCentralizado e formatarTempo (hud.c)
 #include "ranking.h"
+#include "cores.h"    // paleta da marca (a mesma do HUD e das outras telas)
 
 /*
  * Tela inicial: titulo, a historia do jogo e "ENTER para comecar", com a luz
@@ -16,17 +17,13 @@
  *
  * Organizacao da tela (de cima para baixo):
  *   1. titulo BLACKOUT
- *   2. historia no centro, com o professor na esquerda e os robos na direita
+ *   2. historia no centro, com os professores na esquerda e os robos na direita
  *   3. faixa de baixo: controles (esquerda), nome + ENTER (centro), TOP 5 (direita)
  */
 
-// Paleta do guia de marca do CESAR
-#define COR_FUNDO    (Color){  22,  22,  22, 255 } // #161616
-#define COR_LARANJA  (Color){ 255,  96,   2, 255 } // #ff6002
-#define COR_LARANJA2 (Color){ 221,  64,  18, 255 } // #dd4012
-#define COR_CLARO    (Color){ 255, 254, 238, 255 } // #fffeee
-#define COR_CINZA    (Color){ 129, 139, 157, 255 } // #818b9d
-#define COR_QUADRO   (Color){  10,  12,  20, 255 } // fundo dos quadros (o mesmo do HUD)
+// Fundo dos quadros (o mesmo azul-escuro da barra do HUD). As cores da marca
+// (COR_LARANJA, COR_FUNDO...) vem de cores.h
+#define COR_QUADRO   (Color){  10,  12,  20, 255 }
 
 #define LETRAS_POR_SEGUNDO 45.0f // velocidade da "maquina de escrever"
 
@@ -129,10 +126,6 @@ static int contarLetras(const char *texto) {
     return n;
 }
 
-static void textoCentralizado(const char *texto, int centroX, int y, int fonte, Color cor) {
-    DrawText(texto, centroX - MeasureText(texto, fonte) / 2, y, fonte, cor);
-}
-
 // Copia o texto para "destino" cortando o final com "..." se ele passar da
 // largura maxima (em pixels). Usado nos nomes do ranking, que podem ser longos.
 static void encaixarTexto(const char *texto, int larguraMax, int fonte, char *destino, int tamanho) {
@@ -146,13 +139,6 @@ static void encaixarTexto(const char *texto, int larguraMax, int fonte, char *de
         strcat(destino, "...");
         if (MeasureText(destino, fonte) <= larguraMax) return;
     }
-}
-
-// Converte segundos em "MM:SS" (num buffer proprio, para nao depender do
-// buffer temporario do TextFormat)
-static void formatarTempo(float segundos, char *destino, int tamanho) {
-    int total = (int)segundos;
-    snprintf(destino, (size_t)tamanho, "%02d:%02d", total / 60, total % 60);
 }
 
 // ---- Personagens -----------------------------------------------------------
@@ -353,7 +339,9 @@ static void desenharRanking(Rectangle r, const EntradaRanking lista[], int total
         char nome[64];
         char tempo[16];
         encaixarTexto(lista[i].nome, larguraNome, fonte, nome, (int)sizeof(nome));
-        formatarTempo(lista[i].tempo, tempo, (int)sizeof(tempo));
+        // formatarTempo (hud.c) usa um buffer temporario da raylib: copia na
+        // hora, porque o TextFormat logo abaixo poderia reaproveitar o buffer
+        snprintf(tempo, sizeof(tempo), "%s", formatarTempo(lista[i].tempo));
 
         DrawText(TextFormat("%d.", i + 1), (int)(r.x + margem), y, fonte, iluminar(COR_CINZA, 0.35f + 0.65f * luz));
         DrawText(nome, (int)(r.x + margem) + larguraPosicao, y, fonte, cor);

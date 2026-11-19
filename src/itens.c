@@ -108,12 +108,6 @@ void coletar_item(Item **itens, Jogador *jogador){
 }
 
 
-int verificar_vitoria(Item *itens){
-    //condicional implicita que devolve 0(f) ou 1(v)
-    //ganha quando os itens acabam
-    return(itens==NULL);
-}
-
 int contar_itens(Item *itens){
     //usa um for para percorrer a lista de itens, usnaod um contador pra saber quantos faltam.
     int total = 0;

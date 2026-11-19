@@ -16,8 +16,6 @@ void desenhar_item(struct Jogo *jogo, Vector2 origem, int tamanhoCasa);
 
 void desenhar_item_3d(struct Jogo *jogo, Camera3D camera);
 
-int verificar_vitoria(Item *itens);
-
 int contar_itens(Item *itens);
 
 #endif

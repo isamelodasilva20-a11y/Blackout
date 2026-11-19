@@ -38,36 +38,8 @@ void jogoCarregar(Jogo *jogo) {
        
 }   
 
-// 2. Leitura dos caracteres do mapa para adicionar os robôs com a velocidade ajustada ao andar
-// 2. Leitura dos caracteres do mapa para adicionar os robôs com a velocidade ajustada ao andar
-void jogoCarregarMapaRobos(Jogo *jogo, char mapaTexto[100][100], int linhas, int colunas) {
-    if (jogo == NULL) return;
 
-    for (int l = 0; l < linhas; l++) {
-        for (int c = 0; c < colunas; c++) {
-            char caractere = mapaTexto[l][c];
-            Posicao posAtual = { l, c };
-
-            if (caractere == 'I') {
-                robosAdicionar(&jogo->robos, posAtual, ROBO_INTERCEPTADOR, jogo->andarAtual);
-            } else if (caractere == 'P') {
-                robosAdicionar(&jogo->robos, posAtual, ROBO_PERSEGUIDOR, jogo->andarAtual);
-            } else if (caractere == 'T' || caractere == 'R') {
-                robosAdicionar(&jogo->robos, posAtual, ROBO_TEMPORIZADOR, jogo->andarAtual);
-            } else if (caractere == 'B') {
-                robosAdicionar(&jogo->robos, posAtual, ROBO_CINZA, jogo->andarAtual);
-            }
-        }
-    }
-}
-// 3. Atualização contínua de colisões
-void jogoTick(Jogo *jogo) {
-    if (jogo == NULL) return;
-
-    checarVitoriaDerrotaRobos(jogo);
-}
-
-// 4. Descarregar as texturas da memória ao fechar o jogo
+// 2. Descarregar as texturas da memória ao fechar o jogo
 void jogoDescarregar(Jogo *jogo) {
     if (jogo == NULL) return;
 

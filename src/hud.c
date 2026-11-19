@@ -10,21 +10,14 @@
 #include "mapa.h"
 #include "professor.h"
 #include "ranking.h"
+#include "cores.h"    // paleta da marca (COR_LARANJA, COR_FUNDO...), a mesma da tela inicial
 
 
-// Cores do HUD
+// Cores so do HUD (as da marca vem de cores.h)
 #define COR_HUD_FUNDO   (Color){  10,  12,  20, 220 }
-#define COR_HUD_LINHA   (Color){ 255,  96,   2, 255 } // laranja do CESAR (#ff6002)
 #define COR_VIDA        (Color){ 230,  41,  55, 255 }
 #define COR_VIDA_PERDIDA (Color){ 60,  60,  66, 255 }
 #define COR_BATERIA_HUD (Color){  40, 120, 255, 255 } // mesmo azul das baterias no 3D
-
-// Paleta da marca (a mesma da tela inicial, em telainicial.c), usada no game over
-#define COR_FUNDO    (Color){  22,  22,  22, 255 } // #161616
-#define COR_LARANJA  (Color){ 255,  96,   2, 255 } // #ff6002
-#define COR_LARANJA2 (Color){ 221,  64,  18, 255 } // #dd4012
-#define COR_CLARO    (Color){ 255, 254, 238, 255 } // #fffeee
-#define COR_CINZA    (Color){ 129, 139, 157, 255 } // #818b9d
 
 // Quanto a janela atual e maior (ou menor) que a janela base de 1024x640
 float hudEscala(void) {
@@ -136,8 +129,10 @@ static void desenharIconeRelogio(float cx, float cy, float r, Color cor) {
     DrawLineEx((Vector2){ cx, cy }, (Vector2){ cx + r * 0.45f, cy }, espessura, cor);      // ponteiro das horas
 }
 
-// Converte segundos em "MM:SS"
-static const char *formatarTempo(float segundos) {
+// Converte segundos em "MM:SS". Usada pelo HUD, pelas telas e pela tela
+// inicial (declarada em hud.h). O texto fica num buffer temporario da raylib
+// (TextFormat): quem precisar guardar deve copiar logo (snprintf).
+const char *formatarTempo(float segundos) {
     int total = (int)segundos;
     return TextFormat("%02d:%02d", total / 60, total % 60);
 }
@@ -221,7 +216,7 @@ void desenharHUD(Jogo *jogo) {
 
     // Fundo semitransparente com um filete colorido em cima
     DrawRectangle(0, topo, largura, alturaBarra, COR_HUD_FUNDO);
-    DrawRectangle(0, topo, largura, (escala < 1.0f) ? 1 : (int)(2.0f * escala), COR_HUD_LINHA);
+    DrawRectangle(0, topo, largura, (escala < 1.0f) ? 1 : (int)(2.0f * escala), COR_LARANJA);
 
     // ---- Linha 1, da esquerda para a direita ----
     float x = margem;
@@ -324,9 +319,11 @@ void desenharHUD(Jogo *jogo) {
     desenharAlertaProximidade(jogo);
 }
 
-// Escreve um texto centralizado na horizontal
-static void textoCentralizado(const char *texto, int y, int tamanho, Color cor) {
-    DrawText(texto, (GetScreenWidth() - MeasureText(texto, tamanho)) / 2, y, tamanho, cor);
+// Escreve um texto centralizado na horizontal em torno de centroX (para
+// centralizar na tela, centroX = GetScreenWidth() / 2). Usada pelas telas do
+// hud.c e pela tela inicial (declarada em hud.h).
+void textoCentralizado(const char *texto, int centroX, int y, int fonte, Color cor) {
+    DrawText(texto, centroX - MeasureText(texto, fonte) / 2, y, fonte, cor);
 }
 
 // Efeito de "acender a luz" no comeco da partida: a tela comeca toda preta
@@ -374,15 +371,16 @@ AcaoTela desenharTelaVitoria(Jogo *jogo, EntradaRanking ranking[], int totalRank
 
     float escala = hudEscala();
     int topo = (int)(50 * escala);
+    int cx = GetScreenWidth() / 2;
 
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.85f));
-    textoCentralizado("BACKUP CONCLUÍDO! TODOS OS PENDRIVES FORAM COLETADOS!", topo, fonteEscalada(26, escala), GREEN);
+    textoCentralizado("BACKUP CONCLUÍDO! TODOS OS PENDRIVES FORAM COLETADOS!", cx, topo, fonteEscalada(26, escala), GREEN);
     textoCentralizado(TextFormat("Jogador: %s  |  Seu Tempo: %s", jogo->jogador.nome, formatarTempo(jogo->tempoJogo)),
-                      topo + (int)(40 * escala), fonteEscalada(22, escala), WHITE);
+                      cx, topo + (int)(40 * escala), fonteEscalada(22, escala), WHITE);
 
     // --- TABELA DE RANKING GERAL ---
     int yRank = topo + (int)(95 * escala);
-    textoCentralizado("=== RANKING GERAL (TOP 5) ===", yRank, fonteEscalada(24, escala), COR_HUD_LINHA);
+    textoCentralizado("=== RANKING GERAL (TOP 5) ===", cx, yRank, fonteEscalada(24, escala), COR_LARANJA);
     yRank += (int)(40 * escala);
 
     int limite = (totalRanking < 5) ? totalRanking : 5;
@@ -393,7 +391,7 @@ AcaoTela desenharTelaVitoria(Jogo *jogo, EntradaRanking ranking[], int totalRank
         Color corLinha = ehJogadorAtual ? YELLOW : RAYWHITE;
 
         const char *linhaRank = TextFormat("%dº  %-18s  %s", i + 1, ranking[i].nome, formatarTempo(ranking[i].tempo));
-        textoCentralizado(linhaRank, yRank + i * (int)(32 * escala), fonteEscalada(20, escala), corLinha);
+        textoCentralizado(linhaRank, cx, yRank + i * (int)(32 * escala), fonteEscalada(20, escala), corLinha);
     }
 
     // Botao SAIR (tecla ESC, tratada no main.c, ou clique), centralizado embaixo
@@ -832,7 +830,7 @@ AcaoTela desenharTelaPausa(Jogo *jogo) {
     int xTitulo = cx - MeasureText("PAUSADO", fonteTitulo) / 2;
     DrawText("PAUSADO", xTitulo + sombra, yTitulo + sombra, fonteTitulo, COR_LARANJA2);
     DrawText("PAUSADO", xTitulo, yTitulo, fonteTitulo, COR_LARANJA);
-    textoCentralizado("O cronômetro e os robôs estão parados", (int)(meioY - 132.0f * escala), fonteEscalada(16, escala), COR_CINZA);
+    textoCentralizado("O cronômetro e os robôs estão parados", cx, (int)(meioY - 132.0f * escala), fonteEscalada(16, escala), COR_CINZA);
 
     // 2. Quadro com o resumo da partida: icone, nome do dado e valor
     Rectangle r = { (float)cx - 200.0f * escala, meioY - 104.0f * escala, 400.0f * escala, 206.0f * escala };
@@ -909,7 +907,7 @@ AcaoTela desenharTelaPausa(Jogo *jogo) {
     const char *controles = (jogo->modoVisao == 0)
         ? "WASD/setas: andar    V: visão 3D    L: lanterna    F11: tela cheia"
         : "W/S: andar    A/D: girar    V: visão 2D    L: lanterna    F11: tela cheia";
-    textoCentralizado(controles, (int)(yBotoes + alturaBotao + 22.0f * escala), fonteEscalada(14, escala), Fade(COR_CINZA, 0.8f));
+    textoCentralizado(controles, cx, (int)(yBotoes + alturaBotao + 22.0f * escala), fonteEscalada(14, escala), Fade(COR_CINZA, 0.8f));
 
     // Riscos horizontais (mesma "tela de TV" das outras telas)
     for (int ly = 0; ly < altura; ly += 4) DrawRectangle(0, ly, largura, 1, Fade(BLACK, 0.18f));

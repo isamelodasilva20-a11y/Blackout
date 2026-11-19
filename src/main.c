@@ -22,10 +22,9 @@ static void reiniciarPartida(Jogo *jogo) {
     jogo->jogador.tempoLanterna = 0.0f;
     jogo->jogador.tempoInvulneravel = 0.0f;
     jogo->jogador.tempoCurtoCircuito = 0.0f;
-    jogo->jogador.temPendrive = false;
     jogo->tempoJogo = 0.0f;
     jogo->telaAtual = TELA_NORMAL;
-    mapaCarregarAndar(jogo, 1);
+    mapaCarregarAndar(jogo, 1); // tambem tira o pendrive e reinicia o professor
 }
 
 int main(void) {
@@ -94,7 +93,6 @@ int main(void) {
     // Começa no andar 1. O professor (posição e pergunta) também vem daqui.
     int carregou = mapaCarregarAndar(&jogo, 1);
 
-    float acumuladorTempo = 0.0f;
     float tempoInativo = 0.0f;
     float tempoPasso = 0.0f;
     const float INTERVALO_PASSO = 0.20f;
@@ -310,11 +308,7 @@ int main(void) {
         if (jogo.telaAtual == TELA_QUIZ) {
             jogo.tempoFala += GetFrameTime();
         }
-        
-        acumuladorTempo += GetFrameTime();
-        if (acumuladorTempo >= 0.05f) {
-            acumuladorTempo -= 0.05f;
-        }
+
 
         BeginDrawing();
             ClearBackground(BLACK);

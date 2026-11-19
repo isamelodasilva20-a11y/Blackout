@@ -13,6 +13,11 @@ struct Mapa;
 
 float hudEscala(void);
 
+// Ajudantes de texto usados pelo HUD, pelas telas e pela tela inicial
+// (ficam no hud.c para nao existir uma copia de cada em cada arquivo)
+void textoCentralizado(const char *texto, int centroX, int y, int fonte, Color cor);
+const char *formatarTempo(float segundos); // "MM:SS" num buffer temporario
+
 int hudAlturaBarra(void);
 
 // Usamos "struct Mapa" e "struct Jogo" aqui para evitar qualquer conflito
