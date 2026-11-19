@@ -91,7 +91,8 @@ void inicializar_professor(Professor *professor, Posicao posicao, const char *no
     professor->nome = nome;
     professor->pergunta = pergunta;
     professor->resposta = resposta;
-    professor->id = tipo;
+    professor->id = tipo;   // escolhe a imagem do professor
+    professor->tipo = tipo; // escolhe a fala de acerto/erro no quiz (sem isso, todos falavam como o professor 1)
     professor->ajudado = false;
 }
 
@@ -188,7 +189,7 @@ static int fonteQuiz(int tamanhoBase, float escala) {
 }
 
 // janela do quiz: escurece o jogo, mostra a pergunta e lê a resposta (A, B, C ou D).
-// depois mostra por 1,5 s se acertou ou errou; só fecha quando o jogador acerta
+// depois mostra se acertou ou errou (TEMPO_FALA_ACERTO / TEMPO_FALA_ERRO); só fecha quando o jogador acerta
 void desenhar_quiz(Jogo *jogo) {
     if (jogo == NULL) return;
 

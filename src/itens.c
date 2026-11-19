@@ -8,6 +8,7 @@
 //aloca a memória dos itens necessários no inicio do jogo
 void adicionar_item(Item **itens, Posicao posicao, TipoItem tipo){
     Item *novo = (Item *)memAlocar(sizeof(Item));
+    if (novo == NULL) return; // sem memoria: o item simplesmente nao aparece (em vez de travar)
     novo->posicao = posicao;
     novo->tipo = tipo;
     novo->next = *itens;

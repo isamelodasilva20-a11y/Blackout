@@ -102,10 +102,10 @@ int main(void) {
     EntradaRanking listaRanking[MAX_RANKING];
     int totalRanking = 0;
 
-    // "sair" vira true quando o jogador escolhe sair (ESC na tela inicial, Q
-    // ou SAIR na pausa, ESC ou SAIR na vitoria). O laco principal termina e a
-    // limpeza do final roda normalmente. (No game over, ESC/MENU volta para a
-    // tela inicial; de la, ESC sai.)
+    // "sair" vira true quando o jogador escolhe sair (ESC na tela inicial,
+    // ESC ou SAIR na vitoria). O laco principal termina e a limpeza do final
+    // roda normalmente. (Na pausa e no game over, MENU volta para a tela
+    // inicial; de la, ESC sai.)
     bool sair = false;
     if (carregou) sair = !telaInicialMostrar(jogo.jogador.nome, 32);
 
@@ -120,7 +120,7 @@ int main(void) {
     // quadro inclui o tempo de carregar a musica e pularia a animacao.
     double inicioLuz = GetTime();
 
-    // Pedido de voltar ao menu (ESC ou MENU no game over). O menu so e aberto
+    // Pedido de voltar ao menu (Q ou MENU na pausa, ESC ou MENU no game over). O menu so e aberto
     // no fim do quadro, depois do EndDrawing: a tela inicial tem o proprio
     // laco de desenho e nao pode rodar dentro de um BeginDrawing aberto.
     bool voltarMenu = false;
@@ -147,8 +147,8 @@ int main(void) {
         if ((IsKeyPressed(KEY_P) || IsKeyPressed(KEY_ESCAPE)) && !venceu && jogo.telaAtual == TELA_NORMAL) {
             pausado = !pausado;
         } else if (pausado && IsKeyPressed(KEY_Q)) {
-            // --- Q na pausa: sair do jogo ---
-            sair = true;
+            // --- Q na pausa: voltar ao menu inicial (o menu abre no fim do quadro) ---
+            voltarMenu = true;
         }
 
         // --- ESC no game over: voltar ao menu inicial; na vitoria: sair do jogo ---
@@ -357,12 +357,12 @@ int main(void) {
             if (pausado) {
                 AcaoTela acao = desenharTelaPausa(&jogo);
                 if (acao == ACAO_CONTINUAR) pausado = 0;
-                else if (acao == ACAO_SAIR) sair = true;
+                else if (acao == ACAO_MENU) voltarMenu = true;
             }
 
         EndDrawing();
 
-        // --- Voltar ao menu inicial (pedido no game over) ---
+        // --- Voltar ao menu inicial (pedido na pausa ou no game over) ---
         if (voltarMenu && !sair) {
             voltarMenu = false;
             // A tela inicial nao atualiza a musica (UpdateMusicStream); se ela
@@ -392,6 +392,7 @@ int main(void) {
 
     memRelatorio();
     UnloadTexture(jogo.texturaJogador);
+    UnloadTexture(jogo.texturaItem); // bateria (carregada no comeco do main)
 
     for (int p = 0; p < 3; p++) {
         for (int pose = 0; pose < 2; pose++) {
@@ -399,7 +400,6 @@ int main(void) {
         }
     }
     jogoDescarregar(&jogo);
-    hudDescarregar(); // textura do robo cinza usada no game over
 
     CloseWindow();
     return carregou ? 0 : 1;

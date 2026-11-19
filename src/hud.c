@@ -490,26 +490,6 @@ typedef struct {
     Color corBrilho;
 } VisualVilao;
 
-// As texturas do robo cinza (jogo->texRoboCinza) nao sao carregadas pelo
-// jogo, entao a imagem dele e carregada aqui, uma vez so (na primeira vez que
-// for preciso), e liberada em hudDescarregar() quando o jogo fecha
-static Texture2D texturaCinza = { 0 };
-static bool tentouCarregarCinza = false;
-
-static Texture2D texturaRoboCinza(void) {
-    if (!tentouCarregarCinza) {
-        tentouCarregarCinza = true; // se o arquivo faltar, nao tenta de novo a cada quadro
-        texturaCinza = LoadTexture("imagens/robo_cinza_acenando.png");
-    }
-    return texturaCinza;
-}
-
-void hudDescarregar(void) {
-    if (texturaCinza.id > 0) UnloadTexture(texturaCinza);
-    texturaCinza = (Texture2D){ 0 };
-    tentouCarregarCinza = false;
-}
-
 // Descobre o robo que causou o game over, sem mexer na logica dos robos:
 //  - Se o jogador ainda tem vidas, o jogo acabou porque o robo roxo chegou
 //    ao professor antes do quiz: o culpado e o roxo mais perto do professor.
@@ -547,8 +527,8 @@ static const Robo *roboCausador(Jogo *jogo, bool *pegouProfessor) {
 }
 
 // Monta o visual do robo de acordo com o tipo. Usa as imagens de frente que o
-// jogo ja carregou (indice [1] = "Baixo (Frente)" em jogo.c); so o cinza usa
-// a imagem carregada aqui. Sem robo (nao deveria acontecer), mostra o vermelho.
+// jogo ja carregou (indice [1] = "Baixo (Frente)" em jogo.c), entao o game
+// over nao carrega nenhuma textura. Sem robo (nao deveria acontecer), mostra o vermelho.
 static VisualVilao visualDoRobo(Jogo *jogo, const Robo *robo) {
     TipoRobo tipo = (robo != NULL) ? robo->tipo : ROBO_PERSEGUIDOR;
     VisualVilao v;
@@ -560,7 +540,7 @@ static VisualVilao visualDoRobo(Jogo *jogo, const Robo *robo) {
         v = (VisualVilao){ jogo->texRoboTemporizador[1], { 0.36f, 0.64f }, 0.147f,
                            (Color){ 0, 230, 255, 255 }, (Color){ 140, 70, 220, 255 } };
     } else if (tipo == ROBO_CINZA) {           // cinza (robo_cinza_acenando.png)
-        v = (VisualVilao){ texturaRoboCinza(), { 0.42f, 0.56f }, 0.33f,
+        v = (VisualVilao){ jogo->texRoboCinza[1], { 0.42f, 0.56f }, 0.33f,
                            (Color){ 90, 200, 255, 255 }, (Color){ 130, 150, 180, 255 } };
     } else {                                   // vermelho (robo_vermelho_frente.png)
         v = (VisualVilao){ jogo->texRoboPerseguidor[1], { 0.43f, 0.567f }, 0.305f,
@@ -888,8 +868,8 @@ AcaoTela desenharTelaPausa(Jogo *jogo) {
         }
     }
 
-    // 3. Botoes: CONTINUAR (P ou ESC) e SAIR (Q). As teclas sao lidas no
-    //    main.c; aqui so o clique
+    // 3. Botoes: CONTINUAR (P ou ESC) e MENU (Q, volta para a tela inicial).
+    //    As teclas sao lidas no main.c; aqui so o clique
     float larguraContinuar = 230.0f * escala, larguraSair = 150.0f * escala, vao = 20.0f * escala;
     float xInicio = (float)cx - (larguraContinuar + vao + larguraSair) / 2.0f;
     float yBotoes = meioY + 120.0f * escala;
@@ -898,9 +878,9 @@ AcaoTela desenharTelaPausa(Jogo *jogo) {
                       true, 1.0f, pulso, escala)) {
         acao = ACAO_CONTINUAR;
     }
-    if (botaoClicavel((Rectangle){ xInicio + larguraContinuar + vao, yBotoes, larguraSair, alturaBotao }, "Q", "SAIR",
+    if (botaoClicavel((Rectangle){ xInicio + larguraContinuar + vao, yBotoes, larguraSair, alturaBotao }, "Q", "MENU",
                       false, 1.0f, pulso, escala)) {
-        acao = ACAO_SAIR;
+        acao = ACAO_MENU;
     }
 
     // 4. Lembrete dos controles, discreto, no rodape do bloco

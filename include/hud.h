@@ -32,14 +32,15 @@ typedef enum {
     ACAO_NENHUMA,    // nenhum botao foi clicado neste quadro
     ACAO_CONTINUAR,  // pausa: voltar ao jogo
     ACAO_REINICIAR,  // game over: tentar de novo (mesmo que a tecla R)
-    ACAO_MENU,       // game over: voltar para a tela inicial (mesmo que o ESC)
+    ACAO_MENU,       // pausa e game over: voltar para a tela inicial
     ACAO_SAIR        // fechar o jogo (com a limpeza do main.c)
 } AcaoTela;
 
 // Tela de vitoria com o ranking e o botao SAIR (ESC ou clique)
 AcaoTela desenharTelaVitoria(struct Jogo *jogo, EntradaRanking ranking[], int totalRanking);
 
-// Pausa com o resumo da partida e os botoes CONTINUAR (P/ESC) e SAIR (Q)
+// Pausa com o resumo da partida e os botoes CONTINUAR (P/ESC) e MENU (Q,
+// volta para a tela inicial)
 AcaoTela desenharTelaPausa(struct Jogo *jogo);
 
 // Tela inicial com a historia do jogo (telainicial.c). Devolve true quando o
@@ -54,8 +55,4 @@ AcaoTela desenharTelaGameOver(struct Jogo *jogo);
 // Efeito da luz acendendo no comeco da partida (t = segundos desde o comeco).
 // Desenha um preto que vai sumindo, com piscos; depois de ~1,3 s nao faz nada.
 void desenharLuzAcendendo(float t);
-
-// Libera a textura que o game over carrega (robo cinza). Chamar ao fechar o jogo.
-void hudDescarregar(void);
-
 #endif
