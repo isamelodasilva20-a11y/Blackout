@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -17,11 +19,66 @@ typedef struct {
 
 static const DadosProfessorAndar DADOS_PROFESSORES[] = {
     { "Prof. Thiaguinho", "Qual especificador imprime \num int em C?\nA) %s  B) %d  C) %f", "B", PROFESSOR_1 },
-    { "Prof. Daniel",      "Qual função libera a memória\nalocada com malloc?\nA) free  \nB) delete  \nC) clear  \nD) drop", "A", PROFESSOR_2 },
-    { "Prof. Péricles",     "Qual a principal funcao da \nplataforma Eden AI?\nA) Criar imagens 3D\nB) Agrupar conteudos e tutoria de estudos\nC) Compilar codigo C\nD) Formatar o computador", "B", PROFESSOR_3 },
+    { "Prof. Daniel",     "Qual funcao libera a memoria\nalocada com malloc?\nA) free  \nB) delete  \nC) clear  \nD) drop", "A", PROFESSOR_2 },
+    { "Prof. Pericles",   "Qual a principal funcao da \nplataforma Eden AI?\nA) Criar imagens 3D\nB) Agrupar conteudos e tutoria de estudos\nC) Compilar codigo C\nD) Formatar o computador", "B", PROFESSOR_3 },
 };
 
-// atribui as características do professor
+// Banco de perguntas carregado do arquivo txt
+#define MAX_PERGUNTAS_TXT 60
+
+typedef struct {
+    int andar;
+    char pergunta[256];
+    char resposta[4];
+} PerguntaArquivo;
+
+static PerguntaArquivo bancoPerguntas[MAX_PERGUNTAS_TXT];
+static int qtdPerguntasBanco = 0;
+static bool bancoCarregado = false;
+
+// Transforma "\n" escrito no arquivo txt em quebra de linha real
+static void converterQuebrasDeLinha(char *texto) {
+    int i = 0, j = 0;
+    while (texto[i] != '\0') {
+        if (texto[i] == '\\' && texto[i + 1] == 'n') {
+            texto[j++] = '\n';
+            i += 2;
+        } else {
+            texto[j++] = texto[i++];
+        }
+    }
+    texto[j] = '\0';
+}
+
+static void carregarPerguntasTxt(void) {
+    if (bancoCarregado) return;
+    bancoCarregado = true;
+
+    FILE *arq = fopen("dados/perguntas.txt", "r");
+    if (arq == NULL) return; // se nao achar o arquivo, usa as perguntas padrao
+
+    char linha[512];
+    while (fgets(linha, sizeof(linha), arq) != NULL && qtdPerguntasBanco < MAX_PERGUNTAS_TXT) {
+        linha[strcspn(linha, "\r\n")] = '\0';
+        if (strlen(linha) == 0) continue;
+
+        char *pAndar = strtok(linha, ";");
+        char *pPergunta = strtok(NULL, ";");
+        char *pResposta = strtok(NULL, ";");
+
+        if (pAndar != NULL && pPergunta != NULL && pResposta != NULL) {
+            bancoPerguntas[qtdPerguntasBanco].andar = atoi(pAndar);
+            strcpy(bancoPerguntas[qtdPerguntasBanco].pergunta, pPergunta);
+            converterQuebrasDeLinha(bancoPerguntas[qtdPerguntasBanco].pergunta);
+            strcpy(bancoPerguntas[qtdPerguntasBanco].resposta, pResposta);
+            qtdPerguntasBanco++;
+        }
+    }
+
+    fclose(arq);
+}
+
+// atribui as caracteristicas do professor
 void inicializar_professor(Professor *professor, Posicao posicao, const char *nome, const char *pergunta, const char *resposta, TipoProfessor tipo) {
     if (professor == NULL) return;
     professor->posicao = posicao;
@@ -32,24 +89,44 @@ void inicializar_professor(Professor *professor, Posicao posicao, const char *no
     professor->ajudado = false;
 }
 
-// escolhe a pergunta do andar e reaproveita o inicializar_professor,
-// que também volta o ajudado para false
+// escolhe o professor e sorteia uma pergunta do andar no arquivo txt
 void inicializar_professor_andar(Professor *professor, Posicao posicao, int andar) {
+    carregarPerguntasTxt();
+
     int total = sizeof(DADOS_PROFESSORES) / sizeof(DADOS_PROFESSORES[0]);
-    // se existirem mais andares que perguntas, elas se repetem
     int indice = (andar - 1) % total;
     if (indice < 0) indice = 0;
+
+    const char *perguntaEscolhida = DADOS_PROFESSORES[indice].pergunta;
+    const char *respostaEscolhida = DADOS_PROFESSORES[indice].resposta;
+
+    // Procura todas as perguntas desse andar no banco carregado
+    int candidatos[MAX_PERGUNTAS_TXT];
+    int totalCandidatos = 0;
+
+    for (int i = 0; i < qtdPerguntasBanco; i++) {
+        if (bancoPerguntas[i].andar == andar) {
+            candidatos[totalCandidatos] = i;
+            totalCandidatos++;
+        }
+    }
+
+    // Se achou perguntas desse andar no arquivo, sorteia uma delas
+    if (totalCandidatos > 0) {
+        int sorteado = candidatos[rand() % totalCandidatos];
+        perguntaEscolhida = bancoPerguntas[sorteado].pergunta;
+        respostaEscolhida = bancoPerguntas[sorteado].resposta;
+    }
 
     inicializar_professor(
         professor,
         posicao,
         DADOS_PROFESSORES[indice].nome,
-        DADOS_PROFESSORES[indice].pergunta,
-        DADOS_PROFESSORES[indice].resposta,
+        perguntaEscolhida,
+        respostaEscolhida,
         DADOS_PROFESSORES[indice].tipo
     );
 }
-
 // verifica se o jogador está falando com o professor
 // biblioteca bool declarada no jogo.h
 bool verificar_interacao_professor(Jogador *jogador, Professor *professor) {

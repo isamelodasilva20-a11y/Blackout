@@ -1,3 +1,5 @@
+#include <stdlib.h>
+#include <time.h>
 #include "raylib.h"
 #include "jogo.h"
 #include "jogador.h"
@@ -13,6 +15,7 @@
 
 
 int main(void) {
+    srand(time(NULL));
     // Janela redimensionavel: o jogador pode arrastar a borda ou maximizar,
     // e tudo (mapa, 3D, HUD e quiz) se ajusta ao novo tamanho
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
