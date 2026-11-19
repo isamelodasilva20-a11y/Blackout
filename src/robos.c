@@ -484,6 +484,7 @@ void checarVitoriaDerrotaRobos(Jogo *jogo) {
             continue;
         }
 
+        // Antes do professor ser ajudado, o robo roxo so tenta chegar no professor
         if (atual->tipo == ROBO_TEMPORIZADOR && !jogo->professor.ajudado && !jogo->jogador.temPendrive) {
             float dxProf = atual->posicaoReal.x - (float)jogo->professor.posicao.coluna;
             float dyProf = atual->posicaoReal.y - (float)jogo->professor.posicao.linha;
@@ -497,6 +498,8 @@ void checarVitoriaDerrotaRobos(Jogo *jogo) {
                 return;
             }
         }
+
+        // Enquanto o professor nao foi ajudado, o robo roxo nao da dano no aluno
         if (atual->tipo == ROBO_TEMPORIZADOR && jogo->professor.ajudado == false) {
             atual = atual->next;
             continue;
@@ -511,29 +514,27 @@ void checarVitoriaDerrotaRobos(Jogo *jogo) {
             if (dist <= 0.65f) {
                 if (atual->tipo == ROBO_CINZA && jogo->andarAtual == 3) {
                     jogo->jogador.tempoCurtoCircuito = 4.0f;
-                }
-
-                if (jogo->jogador.bateria > 0) {
-                    jogo->jogador.bateria = 0;
                 } else {
-                    jogo->jogador.vidas--;
-                    if (jogo->jogador.vidas <= 0) {
-                        jogo->jogador.vidas = 0;
-                        jogo->telaAtual = TELA_GAME_OVER;
-                        return;
+                    if (jogo->jogador.bateria > 0) {
+                        jogo->jogador.bateria = 0;
+                        jogo->jogador.tempoLanterna = 0.0f;
+                    } else {
+                        jogo->jogador.vidas--;
+                        if (jogo->jogador.vidas <= 0) {
+                            jogo->jogador.vidas = 0;
+                            jogo->telaAtual = TELA_GAME_OVER;
+                            return;
+                        }
                     }
                 }
 
                 jogo->jogador.tempoInvulneravel = 3.0f;
 
-                if (atual->tipo == ROBO_TEMPORIZADOR) {
-                    atual->tempoParalisado = 5.0f;
-                } else {
-                    roboQueBateu = atual;
-                    passosRecuo = 5;
-                    atual->posicaoAnterior = atual->posicao;
-                    atual->posicao = calcularPassoFuga(&jogo->mapa, atual, jogo->jogador.posicao);
-                }
+                // Agora todos os robos (incluindo o roxo) recuam 5 passos depois de bater
+                roboQueBateu = atual;
+                passosRecuo = 5;
+                atual->posicaoAnterior = atual->posicao;
+                atual->posicao = calcularPassoFuga(&jogo->mapa, atual, jogo->jogador.posicao);
             }
         }
 
