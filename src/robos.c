@@ -256,7 +256,7 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
         float distJogador = sqrtf(dxJog * dxJog + dyJog * dyJog);
 
         if (atual->tipo == ROBO_PERSEGUIDOR || atual->tipo == ROBO_INTERCEPTADOR ||
-            (atual->tipo == ROBO_CINZA && jogo->andarAtual == 1) ||
+            (atual->tipo == ROBO_CINZA && (jogo->andarAtual == 1 || jogo->andarAtual == 2)) ||
             (atual->tipo == ROBO_TEMPORIZADOR && jogo->professor.ajudado)) {
             
             // Ao entrar no raio de 4 quadradinhos com a lanterna ligada, ativa/renova 10s de fuga
