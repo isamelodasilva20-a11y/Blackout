@@ -1,9 +1,17 @@
 1;Qual especificador imprime \num int em C?\nA) %s  B) %d  C) %f;B
+
 1;Qual operador pega o endereco \nde memoria de uma variavel?\nA) *  B) &  C) %  D) #;B
+
 1;Qual comando encerra um loop \nimediatamente em C?\nA) stop  B) exit  C) break  D) end;C
+
 2;Qual funcao libera a memoria\nalocada com malloc?\nA) free\nB) delete\nC) clear\nD) drop;A
-2;Como se declara um ponteiro\npara inteiro em C?\nA) int p;\nB) int *p;\nC) int &p;\nD) ptr int p;;B
+
+2;Como se declara um ponteiro\npara inteiro em C?\nA) int p\nB) int *p\nC) int &p\nD) ptr int p;B
+
 2;O que acontece se esquecer de\ndar free() apos um malloc()?\nA) Erro de compilacao\nB) Vazamento de memoria\nC) O PC reinicia\nD) Nada;B
+
 3;Qual a principal funcao da \nplataforma Eden AI?\nA) Criar imagens 3D\nB) Agrupar conteudos e tutoria de estudos\nC) Compilar codigo C\nD) Formatar o computador;B
+
 3;Qual palavra-chave retorna um\nvalor dentro de uma funcao em C?\nA) break\nB) print\nC) return\nD) void;C
+
 3;Qual palavra-chave cria um apelido\npara uma struct em C?\nA) define\nB) struct\nC) typedef\nD) include;C
