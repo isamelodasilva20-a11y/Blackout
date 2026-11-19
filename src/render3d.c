@@ -493,6 +493,7 @@ static void desenharRobos3D(Jogo *jogo, Camera3D camera) {
         }
 
         // Escolhe o sprite (Frente, Costas ou Lado) conforme o angulo para a camera
+        // Escolhe o sprite (Frente, Costas ou Lado) conforme o angulo para a camera
         float toCamX = cam.atual.x - cx;
         float toCamZ = cam.atual.z - cz;
         float distCam = sqrtf(toCamX * toCamX + toCamZ * toCamZ);
@@ -505,14 +506,14 @@ static void desenharRobos3D(Jogo *jogo, Camera3D camera) {
             toCamZ /= distCam;
 
             float dot = r->direcao.x * toCamX + r->direcao.y * toCamZ;
-            if (dot > 0.5f) {
-                idxTex = 0; // Frente
-            } else if (dot < -0.5f) {
-                idxTex = 1; // Costas
+            if (dot > 0.25f) {
+                idxTex = 0; // Frente (vindo na direcao do jogador)
+            } else if (dot < -0.35f) {
+                idxTex = 1; // Costas (indo para longe do jogador)
             } else {
                 idxTex = 2; // Lado
                 float cross = r->direcao.x * toCamZ - r->direcao.y * toCamX;
-                flipX = (cross < 0.0f) ? -1.0f : 1.0f;
+                flipX = (cross > 0.0f) ? -1.0f : 1.0f;
             }
         }
 
