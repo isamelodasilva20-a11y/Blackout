@@ -522,7 +522,7 @@ static void desenharRobos3D(Jogo *jogo, Camera3D camera) {
 
                 // O robo vermelho e o roxo usam a mesma textura de lado nos indices 2 e 3,
                 // entao espelha quando for para o outro lado
-                if ((r->tipo == ROBO_PERSEGUIDOR || r->tipo == ROBO_TEMPORIZADOR) && cross < 0.0f) {
+                if ((r->tipo == ROBO_VERMELHO || r->tipo == ROBO_ROXO) && cross < 0.0f) {
                     flipX = -1.0f;
                 }
             }
@@ -530,11 +530,11 @@ static void desenharRobos3D(Jogo *jogo, Camera3D camera) {
 
         Texture2D tex;
         Color corFallback;
-        if (r->tipo == ROBO_TEMPORIZADOR) {
-            tex = jogo->texRoboTemporizador[idxTex];
+        if (r->tipo == ROBO_ROXO) {
+            tex = jogo->texRoboRoxo[idxTex];
             corFallback = PURPLE;
-        } else if (r->tipo == ROBO_PERSEGUIDOR) {
-            tex = jogo->texRoboPerseguidor[idxTex];
+        } else if (r->tipo == ROBO_VERMELHO) {
+            tex = jogo->texRoboVermelho[idxTex];
             corFallback = ORANGE;
         } else if (r->tipo == ROBO_CINZA) {
             if (idxTex == 1 && ((int)(GetTime() * 4.0) % 2 == 1)) {
@@ -544,7 +544,7 @@ static void desenharRobos3D(Jogo *jogo, Camera3D camera) {
             }
            corFallback = GRAY;
         }else {
-            tex = jogo->texRoboInterceptador[idxTex];
+            tex = jogo->texRoboLaranja[idxTex];
             corFallback = RED;
         }
 

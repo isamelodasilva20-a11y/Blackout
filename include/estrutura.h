@@ -71,9 +71,9 @@ typedef struct {
 }Professor;
 
 typedef enum {
-    ROBO_TEMPORIZADOR,     
-    ROBO_PERSEGUIDOR,   
-    ROBO_INTERCEPTADOR,  
+    ROBO_ROXO,     
+    ROBO_VERMELHO,   
+    ROBO_LARANJA,  
     ROBO_CINZA
 } TipoRobo;
 
@@ -117,9 +117,9 @@ typedef struct Jogo{
     Jogador jogador;
     Texture2D texturaJogador; 
     Texture2D texturasProfessores[3][2];
-    Texture2D texRoboInterceptador[4];
-    Texture2D texRoboTemporizador[4];
-    Texture2D texRoboPerseguidor[4];
+    Texture2D texRoboLaranja[4];
+    Texture2D texRoboRoxo[4];
+    Texture2D texRoboVermelho[4];
     Texture2D texRoboCinza[5];
     Texture2D texturaItem;
     Item *itens;          

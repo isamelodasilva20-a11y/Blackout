@@ -1,7 +1,8 @@
 #include <stdlib.h>
-#include <time.h>
 #include "raylib.h"
-#include "jogo.h"
+#include <time.h>
+
+#include "estrutura.h"
 #include "jogador.h"
 #include "mapa.h"
 #include "memoria.h"
@@ -9,8 +10,7 @@
 #include "professor.h"
 #include "render3d.h"
 #include "hud.h"
-#include "robos.h"
-#include "estrutura.h"
+#include "robos.h"z
 #include "ranking.h"
 
 
@@ -24,27 +24,21 @@ static void reiniciarPartida(Jogo *jogo) {
     jogo->jogador.tempoCurtoCircuito = 0.0f;
     jogo->tempoJogo = 0.0f;
     jogo->telaAtual = TELA_NORMAL;
-    mapaCarregarAndar(jogo, 1); // tambem tira o pendrive e reinicia o professor
+    mapaCarregarAndar(jogo, 1);
 }
 
+
 int main(void) {
-    srand(time(NULL));
-    // Janela redimensionavel: o jogador pode arrastar a borda ou maximizar,
-    // e tudo (mapa, 3D, HUD e quiz) se ajusta ao novo tamanho
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    InitWindow(LARGURA_BASE, ALTURA_BASE, "Blackout");
+    srand(time(NULL)); 
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE); //permite alterar o tamanho da janela dinamicamente
+    InitWindow(LARGURA_BASE, ALTURA_BASE, "Blackout"); //define a janela com altura e largura especifica assim como o titulo da janela
+    SetExitKey(KEY_NULL); //desativa o botão ESC como fechador de janela, pois usamos como pause
+    SetWindowMinSize(LARGURA_BASE / 2, ALTURA_BASE / 2);//define o menor tamanho de janela possivel
+    SetTargetFPS(60); //define o fps
 
-    // Por padrao, a raylib fecha a janela quando o ESC e apertado, em qualquer
-    // tela. Desligamos isso: o ESC passa a pausar durante a partida, e a saida
-    // e controlada pela variavel "sair" (o X da janela continua fechando).
-    SetExitKey(KEY_NULL);
-    SetWindowMinSize(LARGURA_BASE / 2, ALTURA_BASE / 2);
-    SetTargetFPS(60);
-
-    // Se o monitor for pequeno (ex.: notebook com zoom), a janela comeca
-    // menor, ocupando 90% da tela e mantendo a proporcao 1024x640
-    int monitor = GetCurrentMonitor();
-    int larguraMonitor = GetMonitorWidth(monitor);
+    //identifica o tipo de monitor pra se adequar
+    int monitor = GetCurrentMonitor(); 
+    int larguraMonitor = GetMonitorWidth(monitor); 
     int alturaMonitor = GetMonitorHeight(monitor);
     float cabeX = 0.9f * (float)larguraMonitor / LARGURA_BASE;
     float cabeY = 0.9f * (float)alturaMonitor / ALTURA_BASE;
@@ -58,40 +52,41 @@ int main(void) {
 
     Jogo jogo = {0};
     
-    // Carregamento do jogador
-    jogo.texturaJogador = LoadTexture("imagens/jogador.png");
-    SetTextureFilter(jogo.texturaJogador, TEXTURE_FILTER_POINT);
+    // Carregamento de imagens
 
-    // --- PONTO 3: Carregamento das texturas dos 3 Professores (Normal e Joinha) ---
-    // Prof. Thiaguinho (ID: 0)
+    //jogador
+    jogo.texturaJogador = LoadTexture("imagens/jogador.png");
+    
+    // Prof. Thiaguinho
     jogo.texturasProfessores[PROFESSOR_1][0] = LoadTexture("imagens/professor_1_normal.png");
     jogo.texturasProfessores[PROFESSOR_1][1] = LoadTexture("imagens/professor_1_joinha.png");
-
-    // Prof. Daniel (ID: 1)
+    
+    // Prof. Daniel
     jogo.texturasProfessores[PROFESSOR_2][0] = LoadTexture("imagens/professor_2_normal.png");
     jogo.texturasProfessores[PROFESSOR_2][1] = LoadTexture("imagens/professor_2_joinha.png");
-
-    // Prof. Péricles (ID: 2)
+    
+    // Prof. Péricles
     jogo.texturasProfessores[PROFESSOR_3][0] = LoadTexture("imagens/professor_3_normal.png");
     jogo.texturasProfessores[PROFESSOR_3][1] = LoadTexture("imagens/professor_3_joinha.png");
-
+    
+    //baterias
     jogo.texturaItem = LoadTexture("imagens/bateria.png");
-
+    
     // Aplica o filtro Point em todas as texturas para manter o visual Pixel Art nítido (24x24)
+    SetTextureFilter(jogo.texturaJogador, TEXTURE_FILTER_POINT);
+    SetTextureFilter(jogo.texturaItem, TEXTURE_FILTER_POINT);
     for (int p = 0; p < 3; p++) {
         for (int pose = 0; pose < 2; pose++) {
             SetTextureFilter(jogo.texturasProfessores[p][pose], TEXTURE_FILTER_POINT);
         }
     }
-
-    jogoCarregar(&jogo);
+    roboCarregar(&jogo);
 
     jogo.jogador.vidas = VIDAS_INICIAIS;
     jogo.jogador.bateria = 0;
     jogo.jogador.tempoInvulneravel = 0.0f;
 
-    // Começa no andar 1. O professor (posição e pergunta) também vem daqui.
-    int carregou = mapaCarregarAndar(&jogo, 1);
+    int carregou_mapa = mapaCarregarAndar(&jogo, 1);
 
     float tempoInativo = 0.0f;
     float tempoPasso = 0.0f;
@@ -107,7 +102,7 @@ int main(void) {
     // roda normalmente. (Na pausa e no game over, MENU volta para a tela
     // inicial; de la, ESC sai.)
     bool sair = false;
-    if (carregou) sair = !telaInicialMostrar(jogo.jogador.nome, 32);
+    if (carregou_mapa) sair = !telaInicialMostrar(jogo.jogador.nome, 32);
 
     InitAudioDevice();
     Music musicaFundo = LoadMusicStream("imagens/musica/running_out_of_time.ogg");
@@ -125,7 +120,7 @@ int main(void) {
     // laco de desenho e nao pode rodar dentro de um BeginDrawing aberto.
     bool voltarMenu = false;
 
-    while (carregou && !sair && !WindowShouldClose()) {
+    while (carregou_mapa && !sair && !WindowShouldClose()) {
         // --- Atualiza a musica de fundo e ajusta volume conforme a tela ---
         UpdateMusicStream(musicaFundo);
         if (pausado || jogo.telaAtual == TELA_GAME_OVER || venceu) {
@@ -289,7 +284,7 @@ int main(void) {
             if (jogo.professor.ajudado && naEscada) {
                 if (jogo.andarAtual < TOTAL_ANDARES) {
                     if (!mapaCarregarAndar(&jogo, jogo.andarAtual + 1)) {
-                        carregou = 0;
+                        carregou_mapa = 0;
                         break;
                     }
                 } else {
@@ -298,7 +293,7 @@ int main(void) {
                     totalRanking = rankingCarregar(listaRanking, MAX_RANKING);
                 }
             }
-        } // <--- Chave que estava faltando!
+        }
 
         // A câmera 3D desliza até a casa/direção nova do jogador
         if (jogo.modoVisao == 1) {
@@ -365,10 +360,8 @@ int main(void) {
         // --- Voltar ao menu inicial (pedido na pausa ou no game over) ---
         if (voltarMenu && !sair) {
             voltarMenu = false;
-            // A tela inicial nao atualiza a musica (UpdateMusicStream); se ela
-            // continuasse tocando, o audio ficaria repetindo o mesmo trecho
             StopMusicStream(musicaFundo);
-            reiniciarPartida(&jogo); // a proxima partida ja fica pronta no andar 1
+            reiniciarPartida(&jogo); 
             pausado = 0;
 
             // O nome digitado antes continua no campo (da para trocar).
@@ -382,7 +375,6 @@ int main(void) {
         }
     }
 
-    // Limpeza: roda sempre, inclusive quando o andar não carregou
     UnloadMusicStream(musicaFundo);
     CloseAudioDevice();
 
@@ -392,15 +384,15 @@ int main(void) {
 
     memRelatorio();
     UnloadTexture(jogo.texturaJogador);
-    UnloadTexture(jogo.texturaItem); // bateria (carregada no comeco do main)
+    UnloadTexture(jogo.texturaItem);
 
     for (int p = 0; p < 3; p++) {
         for (int pose = 0; pose < 2; pose++) {
             UnloadTexture(jogo.texturasProfessores[p][pose]);
         }
     }
-    jogoDescarregar(&jogo);
+    roboDescarregar(&jogo);
 
     CloseWindow();
-    return carregou ? 0 : 1;
+    return carregou_mapa ? 0 : 1;
 }

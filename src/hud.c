@@ -4,7 +4,6 @@
 #include <string.h>
 #include "estrutura.h"
 #include "raylib.h"
-#include "jogo.h"     // 1. jogo.h primeiro
 #include "hud.h"
 #include "itens.h"    // 2. itens.h
 #include "mapa.h"
@@ -509,10 +508,10 @@ static const Robo *roboCausador(Jogo *jogo, bool *pegouProfessor) {
     for (const Robo *r = jogo->robos; r != NULL; r = r->next) {
         if (r->estado == ESTADO_DESLIGADO) continue;
         if (porProfessor) {
-            if (r->tipo != ROBO_TEMPORIZADOR) continue;
+            if (r->tipo != ROBO_ROXO) continue;
         } else {
             if (r->estado == ESTADO_FUGINDO || r->tempoParalisado > 0.0f) continue;
-            if (r->tipo == ROBO_TEMPORIZADOR && !jogo->professor.ajudado) continue;
+            if (r->tipo == ROBO_ROXO && !jogo->professor.ajudado) continue;
             if (r->tipo == ROBO_CINZA && jogo->andarAtual == 3) continue;
         }
         float dx = r->posicaoReal.x - alvoX;
@@ -530,20 +529,20 @@ static const Robo *roboCausador(Jogo *jogo, bool *pegouProfessor) {
 // jogo ja carregou (indice [1] = "Baixo (Frente)" em jogo.c), entao o game
 // over nao carrega nenhuma textura. Sem robo (nao deveria acontecer), mostra o vermelho.
 static VisualVilao visualDoRobo(Jogo *jogo, const Robo *robo) {
-    TipoRobo tipo = (robo != NULL) ? robo->tipo : ROBO_PERSEGUIDOR;
+    TipoRobo tipo = (robo != NULL) ? robo->tipo : ROBO_VERMELHO;
     VisualVilao v;
 
-    if (tipo == ROBO_INTERCEPTADOR) {          // laranja (robo_laranja.png)
-        v = (VisualVilao){ jogo->texRoboInterceptador[1], { 0.39f, 0.61f }, 0.20f,
+    if (tipo == ROBO_LARANJA) {          // laranja (robo_laranja.png)
+        v = (VisualVilao){ jogo->texRoboLaranja[1], { 0.39f, 0.61f }, 0.20f,
                            (Color){ 255, 200, 80, 255 }, COR_LARANJA };
-    } else if (tipo == ROBO_TEMPORIZADOR) {    // roxo (robo_transparente.png)
-        v = (VisualVilao){ jogo->texRoboTemporizador[1], { 0.36f, 0.64f }, 0.147f,
+    } else if (tipo == ROBO_ROXO) {    // roxo (robo_transparente.png)
+        v = (VisualVilao){ jogo->texRoboRoxo[1], { 0.36f, 0.64f }, 0.147f,
                            (Color){ 0, 230, 255, 255 }, (Color){ 140, 70, 220, 255 } };
     } else if (tipo == ROBO_CINZA) {           // cinza (robo_cinza_acenando.png)
         v = (VisualVilao){ jogo->texRoboCinza[1], { 0.42f, 0.56f }, 0.33f,
                            (Color){ 90, 200, 255, 255 }, (Color){ 130, 150, 180, 255 } };
     } else {                                   // vermelho (robo_vermelho_frente.png)
-        v = (VisualVilao){ jogo->texRoboPerseguidor[1], { 0.43f, 0.567f }, 0.305f,
+        v = (VisualVilao){ jogo->texRoboVermelho[1], { 0.43f, 0.567f }, 0.305f,
                            YELLOW, COR_VIDA };
     }
     return v;

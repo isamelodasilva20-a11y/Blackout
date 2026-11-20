@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stddef.h>
 #include "raylib.h"
-#include "jogo.h"       // 1. Traz as definições completas de Direcao, Jogador e Mapa
-#include "mapa.h"       // 2. OBRIGATÓRIO: Traz a função mapaCasaBloqueada
-#include "jogador.h"    // 3. Protótipos do jogador
+#include "estrutura.h" 
+#include "mapa.h" 
+#include "jogador.h" 
 
 // O sprite e desenhado 1,6x maior que a casa (24px -> ~38px)
 #define ESCALA_SPRITE 1.6f

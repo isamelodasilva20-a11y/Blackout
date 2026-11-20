@@ -2,7 +2,7 @@
 #define JOGADOR_H
 
 #include "raylib.h"
-#include "jogo.h"
+#include "estrutura.h"
 
 // Movimentação e rotação
 void movimentar_jogador(Jogador *jogador, Mapa *mapa, Direcao direcao);

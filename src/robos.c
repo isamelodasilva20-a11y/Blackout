@@ -31,11 +31,11 @@ void robosAdicionar(Robo **cabeca, Posicao posicao, TipoRobo tipo, int andar) {
     novo->tempoParalisado = 0.0f;
     novo->tempoFugindo = 0.0f;
 
-    if (tipo == ROBO_TEMPORIZADOR) {
+    if (tipo == ROBO_ROXO) {
         novo->velocidade = 1.4f + (andar - 1) * 0.15f;
-    } else if (tipo == ROBO_INTERCEPTADOR) {
+    } else if (tipo == ROBO_LARANJA) {
         novo->velocidade = 4.8f + (andar - 1) * 0.3f;
-    } else if (tipo == ROBO_PERSEGUIDOR) {
+    } else if (tipo == ROBO_VERMELHO) {
         novo->velocidade = 4.5f + (andar - 1) * 0.3f;
     } else {
         novo->velocidade = 4.4f + (andar - 1) * 0.25f;
@@ -255,9 +255,9 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
         float dyJog = atual->posicaoReal.y - (float)jogo->jogador.posicao.linha;
         float distJogador = sqrtf(dxJog * dxJog + dyJog * dyJog);
 
-        if (atual->tipo == ROBO_PERSEGUIDOR || atual->tipo == ROBO_INTERCEPTADOR ||
+        if (atual->tipo == ROBO_VERMELHO || atual->tipo == ROBO_LARANJA ||
             (atual->tipo == ROBO_CINZA && (jogo->andarAtual == 1 || jogo->andarAtual == 2)) ||
-            (atual->tipo == ROBO_TEMPORIZADOR && jogo->professor.ajudado)) {
+            (atual->tipo == ROBO_ROXO && jogo->professor.ajudado)) {
             
             // Ao entrar no raio de 4 quadradinhos com a lanterna ligada, ativa/renova 10s de fuga
             if (lanternaAtiva && distJogador <= 4.0f) {
@@ -298,7 +298,7 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
             if (atual->estado == ESTADO_FUGINDO || (atual == roboQueBateu && passosRecuo > 0)) {
                 proximaCasa = calcularPassoFuga(&jogo->mapa, atual, jogo->jogador.posicao);
             }
-            else if (atual->tipo == ROBO_TEMPORIZADOR) {
+            else if (atual->tipo == ROBO_ROXO) {
                 if (jogo->professor.ajudado == false) {
                     // Ainda nao respondeu a pergunta: vai ate o professor
                     if (jogo->professor.posicao.linha >= 0 && jogo->professor.posicao.coluna >= 0) {
@@ -331,7 +331,7 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
                 if (distAluno > 3) {
                     Posicao alvoProjetado = jogo->jogador.posicao;
 
-                    if (atual->tipo == ROBO_INTERCEPTADOR) {
+                    if (atual->tipo == ROBO_LARANJA) {
                         if (jogo->jogador.direcao == DIR_CIMA) alvoProjetado.linha -= 2;
                         else if (jogo->jogador.direcao == DIR_BAIXO) alvoProjetado.linha += 2;
                         else if (jogo->jogador.direcao == DIR_ESQUERDA) alvoProjetado.coluna -= 2;
@@ -397,7 +397,7 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
             if (vel <= 0.0f) vel = 4.0f;
 
             // se for o robo roxo e o professor ja foi ajudado, ele corre mais rapido atras do aluno
-            if (atual->tipo == ROBO_TEMPORIZADOR && jogo->professor.ajudado == true && atual->estado != ESTADO_FUGINDO) {
+            if (atual->tipo == ROBO_ROXO && jogo->professor.ajudado == true && atual->estado != ESTADO_FUGINDO) {
                 vel = vel * 1.7f;
             }
 
@@ -434,10 +434,10 @@ void desenharRobos(Jogo *jogo, Vector2 origem, int tamanhoTile) {
         if (r->direcao.x > 0) escalaX = -1.0f;
 
         Texture2D tex;
-        if (r->tipo == ROBO_TEMPORIZADOR) {
-            tex = jogo->texRoboTemporizador[idxTex];
-        } else if (r->tipo == ROBO_PERSEGUIDOR) {
-            tex = jogo->texRoboPerseguidor[idxTex];
+        if (r->tipo == ROBO_ROXO) {
+            tex = jogo->texRoboRoxo[idxTex];
+        } else if (r->tipo == ROBO_VERMELHO) {
+            tex = jogo->texRoboVermelho[idxTex];
         } else if (r->tipo == ROBO_CINZA) {
             if (idxTex == 1 && ((int)(GetTime() * 4.0) % 2 == 1)) {
                 tex = jogo->texRoboCinza[4];
@@ -445,7 +445,7 @@ void desenharRobos(Jogo *jogo, Vector2 origem, int tamanhoTile) {
                 tex = jogo->texRoboCinza[idxTex];
             }
         } else {
-            tex = jogo->texRoboInterceptador[idxTex];
+            tex = jogo->texRoboLaranja[idxTex];
         }
 
         if (tex.id > 0) {
@@ -486,7 +486,7 @@ void checarVitoriaDerrotaRobos(Jogo *jogo) {
         }
 
         // Antes do professor ser ajudado, o robo roxo so tenta chegar no professor
-        if (atual->tipo == ROBO_TEMPORIZADOR && !jogo->professor.ajudado && !jogo->jogador.temPendrive) {
+        if (atual->tipo == ROBO_ROXO && !jogo->professor.ajudado && !jogo->jogador.temPendrive) {
             float dxProf = atual->posicaoReal.x - (float)jogo->professor.posicao.coluna;
             float dyProf = atual->posicaoReal.y - (float)jogo->professor.posicao.linha;
             float distProf = sqrtf(dxProf * dxProf + dyProf * dyProf);
@@ -501,7 +501,7 @@ void checarVitoriaDerrotaRobos(Jogo *jogo) {
         }
 
         // Enquanto o professor nao foi ajudado, o robo roxo nao da dano no aluno
-        if (atual->tipo == ROBO_TEMPORIZADOR && jogo->professor.ajudado == false) {
+        if (atual->tipo == ROBO_ROXO && jogo->professor.ajudado == false) {
             atual = atual->next;
             continue;
         }
@@ -535,4 +535,51 @@ void checarVitoriaDerrotaRobos(Jogo *jogo) {
 
         atual = atual->next;
     }
+}
+
+
+void roboCarregar(Jogo *jogo) {
+    if (jogo == NULL) return;
+
+    //desenhar Robos
+    // Interceptador (Laranja)
+    jogo->texRoboLaranja[0] = LoadTexture("imagens/robo_laranja_frente.png");   // Cima (Costas)
+    jogo->texRoboLaranja[1] = LoadTexture("imagens/robo_laranja.png");          // Baixo (Frente)
+    jogo->texRoboLaranja[2] = LoadTexture("imagens/robo_laranja_lado_esq.png"); // Esquerda
+    jogo->texRoboLaranja[3] = LoadTexture("imagens/robo_laranja_lado_dir.png"); // Direita
+
+    // Perseguidor (Vermelho)
+    jogo->texRoboVermelho[0]   = LoadTexture("imagens/robo_vermelho_costas.png");    // Cima (Costas)
+    jogo->texRoboVermelho[1]   = LoadTexture("imagens/robo_vermelho_frente.png");    // Baixo (Frente)
+    jogo->texRoboVermelho[2]   = LoadTexture("imagens/robo_vermelho_lado_dir.png"); // Esquerda
+    jogo->texRoboVermelho[3]   = LoadTexture("imagens/robo_vermelho_lado_dir.png"); // Direita
+
+    // Temporizador (Roxo)
+    jogo->texRoboRoxo[0] = LoadTexture("imagens/robo_roxo_costas.png");
+    jogo->texRoboRoxo[1] = LoadTexture("imagens/robo_transparente.png");
+    jogo->texRoboRoxo[2] = LoadTexture("imagens/robo_roxo_lado.png");
+    jogo->texRoboRoxo[3] = LoadTexture("imagens/robo_roxo_lado.png");
+
+    // Cinza 
+    // Cinza (indices: 0 = costas, 1 = frente, 2 = esquerda, 3 = direita, 4 = frente animado)
+    jogo->texRoboCinza[0] = LoadTexture("imagens/robo_cinza_costas.png");
+    jogo->texRoboCinza[1] = LoadTexture("imagens/robo_cinza_acenando.png");
+    jogo->texRoboCinza[2] = LoadTexture("imagens/robo_cinza_esquerda_2.png");
+    jogo->texRoboCinza[3] = LoadTexture("imagens/robo_cinza_direita.png");
+    jogo->texRoboCinza[4] = LoadTexture("imagens/robo_cinza_acenando_2.png");
+       
+}   
+
+
+// 2. Descarregar as texturas da memória ao fechar o jogo
+void roboDescarregar(Jogo *jogo) {
+    if (jogo == NULL) return;
+
+    for (int i = 0; i < 4; i++) {
+        UnloadTexture(jogo->texRoboLaranja[i]);
+        UnloadTexture(jogo->texRoboVermelho[i]);
+        UnloadTexture(jogo->texRoboRoxo[i]);
+        UnloadTexture(jogo->texRoboCinza[i]);
+    }
+    UnloadTexture(jogo->texRoboCinza[4]);
 }

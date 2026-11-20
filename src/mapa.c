@@ -1,24 +1,24 @@
-#include "robos.h"
 #include <stdio.h>
-#include <math.h>
 #include <stddef.h>
+#include <math.h>
 #include "raylib.h"
+#include "estrutura.h"
 
-// 1. OBRIGATÓRIO: jogo.h vem PRIMEIRO porque define as structs base
-#include "jogo.h"
-
-
-// 2. Depois os restantes ficheiros de cabeçalho do projeto
+#include "robos.h"
 #include "mapa.h"
 #include "memoria.h"
 #include "itens.h"
 #include "professor.h"
 
 #define TAM_BUFFER 256
-
-// Abaixo desse tamanho de casa (o minimapa do modo 3D) os detalhes nao
-// aparecem direito, entao desenhamos so as cores basicas
 #define DETALHE_MINIMO 12
+
+static Color misturarCor(Color a, Color b, float fator);
+static void desenharParede2D(Mapa *mapa, int i, int j, int x, int y, int t);
+static void desenharPiso2D(Mapa *mapa, int i, int j, int x, int y, int t, char tipo);
+static void desenharMesa2D(int x, int y, int t);
+static void desenharComputador2D(int x, int y, int t);
+static void desenharLogoTapete2D(int x, int y, int largura, int altura);
 
 // Cores do mapa 2D: paleta do guia de marca do CESAR
 // (#ff6002 laranja, #dd4012 laranja escuro, #161616, #3f3f3f, #818b9d, #fffeee)
@@ -37,6 +37,259 @@
 #define COR_METAL          (Color){  63,  63,  63, 255 }
 #define COR_METAL_ESCURO   (Color){  22,  22,  22, 255 }
 #define COR_TELA           COR_CESAR_LARANJA             // telas acesas em laranja
+
+
+int mapaCarregar(Jogo *jogo, const char *arquivo) {
+    if (jogo == NULL || arquivo == NULL) return 0;
+
+    FILE *f = fopen(arquivo, "r");
+    if (f == NULL) {
+        printf("Erro: arquivo do mapa não encontrado!\n");
+        return 0;
+    }
+    
+    int linhas, colunas;
+    if (fscanf(f, "%d %d", &linhas, &colunas) != 2 || linhas <= 0 || colunas <= 0 || colunas > TAM_BUFFER - 2) {
+        printf("Erro: cabecalho invalido em %s\n", arquivo);
+        fclose(f);
+        return 0;
+    }
+
+    // Descarta o resto da linha do cabecalho (a quebra de linha)
+    char buffer[TAM_BUFFER];
+    fgets(buffer, sizeof(buffer), f);
+
+    // 2) Aloca a matriz: um vetor de ponteiros, um para cada linha do mapa
+    Mapa *mapa = &jogo->mapa;
+    mapa->linhas = linhas;
+    mapa->colunas = colunas;
+    mapa->saida = (Posicao){ .linha = -1, .coluna = -1 }; // -1 = andar sem escada, ate achar um 'S'
+    jogo->professor.posicao = (Posicao){ .linha = -1, .coluna = -1 }; // -1 = ainda nao achou o 'F'
+    mapa->matriz = memAlocar((size_t)linhas * sizeof(char *));
+    if (mapa->matriz == NULL) {
+        fclose(f);
+        return 0;
+    }
+
+    //lê todo o mapa
+    for (int i = 0; i < linhas; i++) {
+        mapa->matriz[i] = memAlocar((size_t)colunas * sizeof(char));
+        if (mapa->matriz[i] == NULL) {
+            mapa->linhas = i; // so libera as linhas que chegaram a ser alocadas
+            mapaLiberar(mapa);
+            fclose(f);
+            return 0;
+        }
+
+        if (fgets(buffer, sizeof(buffer), f) == NULL) buffer[0] = '\0';
+
+        // Se a linha do arquivo for mais curta que o mapa (ou acabar em \r\n,
+        // como no Windows), o que falta vira chao vazio
+        int fimLinha = 0;
+        for (int j = 0; j < colunas; j++) {
+            char elementoMatriz = fimLinha ? ' ' : buffer[j];
+
+            if (elementoMatriz == '\n' || elementoMatriz == '\r' || elementoMatriz == '\0') {
+                fimLinha = 1;
+                elementoMatriz = ' ';
+            }
+
+            // Piso que fica embaixo de um objeto: copia o da casa a esquerda
+            // (corredor '.' ou sala ' '). Se a esquerda for parede, vira corredor.
+            char piso = '.';
+            if (j > 0 && (mapa->matriz[i][j - 1] == '.' || mapa->matriz[i][j - 1] == ' ')) {
+                piso = mapa->matriz[i][j - 1];
+            }
+
+            // Leitura das letras do mapa
+            switch (elementoMatriz) {
+                case 'P':
+                    // Ponto de partida do jogador neste andar
+                    jogo->jogador.posicaoInicial.linha = i;
+                    jogo->jogador.posicaoInicial.coluna = j;
+                    jogo->jogador.posicao = jogo->jogador.posicaoInicial;
+                    mapa->matriz[i][j] = piso;
+                    break;
+                case 'S':
+                    // Escada: guardamos a posicao para o main saber quando o jogador sobe
+                    mapa->saida.linha = i;
+                    mapa->saida.coluna = j;
+                    mapa->matriz[i][j] = piso;
+                    break;
+                case 'I':
+                    // Bateria: entra na lista encadeada de itens do jogo
+                    adicionar_item(&jogo->itens, (Posicao){ .linha = i, .coluna = j }, ITEM_BATERIA);
+                    mapa->matriz[i][j] = piso;
+                    break;
+                case 'F':
+                    // Professor: a posicao vem do arquivo; a pergunta e definida por andar
+                    jogo->professor.posicao = (Posicao){ .linha = i, .coluna = j };
+                    mapa->matriz[i][j] = piso;
+                    break;
+               case 'R': // Robo Roxo
+                    robosAdicionar(&jogo->robos, (Posicao){ .linha = i, .coluna = j }, ROBO_ROXO, jogo->andarAtual);
+                    mapa->matriz[i][j] = piso;
+                    break;
+                case 'X': // Robo Vermelho
+                    robosAdicionar(&jogo->robos, (Posicao){ .linha = i, .coluna = j }, ROBO_VERMELHO, jogo->andarAtual);
+                    mapa->matriz[i][j] = piso;
+                    break;
+                case 'Z': // Robo Laranja
+                    robosAdicionar(&jogo->robos, (Posicao){ .linha = i, .coluna = j }, ROBO_LARANJA, jogo->andarAtual);
+                    mapa->matriz[i][j] = piso;
+                    break;
+                case 'B': // Robo Cinza
+                    robosAdicionar(&jogo->robos, (Posicao){ .linha = i, .coluna = j }, ROBO_CINZA, jogo->andarAtual);
+                    mapa->matriz[i][j] = piso;
+                    break;
+                case '#': // parede
+                case '.': // piso de corredor
+                case ' ': // piso de sala
+                case '=': // tapete com a logo (andavel)
+                case 'M': // mesa
+                case 'C': // computador
+                    mapa->matriz[i][j] = elementoMatriz;
+                    break;
+                default:
+                    mapa->matriz[i][j] = piso;
+                    break;
+            }
+        }
+    }
+
+    fclose(f);
+
+    // Sem professor a escada nunca seria liberada: trata como arquivo invalido
+    if (jogo->professor.posicao.linha < 0) {
+        printf("Erro: %s nao tem professor (letra F)\n", arquivo);
+        liberar_todos_itens(&jogo->itens);
+        mapaLiberar(mapa);
+        return 0;
+    }
+    return 1;
+}
+
+// Troca de andar
+int mapaCarregarAndar(Jogo *jogo, int andar) {
+    if (jogo == NULL || andar < 1 || andar > TOTAL_ANDARES) return 0;
+
+    //libera tudo antes de trocar pelos novos elementos
+    liberar_todos_itens(&jogo->itens);
+    robosLiberar(&jogo->robos); // senao os robos do andar anterior continuariam neste
+    mapaLiberar(&jogo->mapa);
+
+    // Monta o nome do arquivo a partir do numero do andar.
+    char arquivo[64];
+    snprintf(arquivo, sizeof(arquivo), "andares/andar%d.txt", andar);
+    if (!mapaCarregar(jogo, arquivo)) return 0;
+
+    inicializar_professor_andar(&jogo->professor, jogo->professor.posicao, andar);
+    jogo->jogador.temPendrive = false; //pra fechar a proxima escada
+
+    // Guarda quantas baterias o andar tem, para o HUD mostrar "coletadas/total"
+    jogo->totalItensAndar = contar_itens(jogo->itens);
+
+    // Vidas, pontos e bateria do jogador nao sao tocados: passam de um andar para o outro.
+    // So a posicao muda, porque o mapaCarregar coloca o jogador no 'P' do novo andar.
+    jogo->andarAtual = andar;
+    return 1;
+}
+
+void mapaLiberar(Mapa *mapa) {
+    if (mapa == NULL || mapa->matriz == NULL) return;
+
+    for (int i = 0; i < mapa->linhas; i++) {
+        memLiberar(mapa->matriz[i]);
+    }
+    memLiberar(mapa->matriz);
+
+    mapa->matriz = NULL;
+    mapa->linhas = 0;
+    mapa->colunas = 0;
+}
+
+
+// Percorre a matriz e desenha cada casa conforme a letra dela.
+// origem e tamanhoCasa permitem desenhar o mapa grande (2D) e o minimapa (3D)
+// com a mesma funcao.
+void desenharMapa2D(Mapa *mapa, Vector2 origem, int tamanhoCasa) {
+    if(mapa == NULL || mapa->matriz == NULL) return;
+
+    for(int i = 0; i < mapa->linhas; i++){
+        for(int j = 0; j < mapa->colunas; j++){
+            // Converte linha/coluna em pixels a partir da origem
+            int x = (int)origem.x + j * tamanhoCasa;
+            int y = (int)origem.y + i * tamanhoCasa;
+
+            switch (mapa->matriz[i][j]) {
+                case '#':
+                    desenharParede2D(mapa, i, j, x, y, tamanhoCasa);
+                    break;
+                case 'M':
+                    // Moveis ficam em salas: primeiro o piso de sala, depois o movel por cima
+                    desenharPiso2D(mapa, i, j, x, y, tamanhoCasa, ' ');
+                    desenharMesa2D(x, y, tamanhoCasa);
+                    break;
+                case 'C':
+                    desenharPiso2D(mapa, i, j, x, y, tamanhoCasa, ' ');
+                    desenharComputador2D(x, y, tamanhoCasa);
+                    break;
+                default:
+                    // '.' (corredor) ou ' ' (sala)
+                    desenharPiso2D(mapa, i, j, x, y, tamanhoCasa, mapa->matriz[i][j]);
+                    if (mapaTemTapete(mapa, i, j)) DrawRectangle(x, y, tamanhoCasa, tamanhoCasa, COR_CESAR_LARANJA);
+                    break;
+            }
+        }
+    }
+
+    // Logos dos tapetes: depois de tudo, senao as casas seguintes do proprio
+    // tapete cobririam o desenho. No minimapa fica so o retangulo laranja.
+    if (tamanhoCasa < DETALHE_MINIMO) return;
+    for (int i = 0; i < mapa->linhas; i++) {
+        for (int j = 0; j < mapa->colunas; j++) {
+            int largura, altura;
+            if (!mapaCantoTapete(mapa, i, j, &largura, &altura)) continue;
+            desenharLogoTapete2D((int)origem.x + j * tamanhoCasa, (int)origem.y + i * tamanhoCasa,
+                                 largura * tamanhoCasa, altura * tamanhoCasa);
+        }
+    }
+}
+
+// Desenha a escada (saida do andar) na casa do 'S', com degraus
+void desenharSaida2D(Mapa *mapa, Vector2 origem, int tamanhoCasa, bool liberada) {
+    if(mapa == NULL || mapa->saida.linha < 0) return; // andar sem escada
+
+    // Escada fica cinza enquanto o professor nao foi ajudado e verde quando o jogador pode subir
+    Color claro  = liberada ? (Color){ 0, 210, 90, 255 } : (Color){ 135, 135, 140, 255 };
+    Color escuro = liberada ? (Color){ 0, 105, 45, 255 } : (Color){  65,  65,  70, 255 };
+
+    int x = (int)origem.x + mapa->saida.coluna * tamanhoCasa;
+    int y = (int)origem.y + mapa->saida.linha * tamanhoCasa;
+
+    // No minimapa a casa e pequena demais para degraus: so um quadrado
+    if (tamanhoCasa < DETALHE_MINIMO) {
+        DrawRectangle(x, y, tamanhoCasa, tamanhoCasa, claro);
+        return;
+    }
+
+    // Borda de 2px para a escada nao encostar nas paredes vizinhas
+    int m = 2;
+    int largura = tamanhoCasa - 2 * m;
+    DrawRectangle(x + m, y + m, largura, largura, escuro);
+
+    // 4 degraus: o de cima (mais alto) e o mais claro, os de baixo vao
+    // escurecendo. O -1 na altura deixa uma linha escura entre os degraus.
+    int degraus = 4;
+    int altura = largura / degraus;
+    for (int k = 0; k < degraus; k++) {
+        Color cor = misturarCor(claro, escuro, (float)k / (float)(degraus - 1));
+        DrawRectangle(x + m, y + m + k * altura, largura, altura - 1, cor);
+    }
+}
+
+
+//funcoes internas
 
 // Mistura duas cores: fator 0 = so a cor a, fator 1 = so a cor b
 static Color misturarCor(Color a, Color b, float fator) {
@@ -194,266 +447,3 @@ static void desenharLogoTapete2D(int x, int y, int largura, int altura) {
     }
 }
 
-// Percorre a matriz e desenha cada casa conforme a letra dela.
-// origem e tamanhoCasa permitem desenhar o mapa grande (2D) e o minimapa (3D)
-// com a mesma funcao.
-void desenharMapa2D(Mapa *mapa, Vector2 origem, int tamanhoCasa) {
-    if(mapa == NULL || mapa->matriz == NULL) return;
-
-    for(int i = 0; i < mapa->linhas; i++){
-        for(int j = 0; j < mapa->colunas; j++){
-            // Converte linha/coluna em pixels a partir da origem
-            int x = (int)origem.x + j * tamanhoCasa;
-            int y = (int)origem.y + i * tamanhoCasa;
-
-            switch (mapa->matriz[i][j]) {
-                case '#':
-                    desenharParede2D(mapa, i, j, x, y, tamanhoCasa);
-                    break;
-                case 'M':
-                    // Moveis ficam em salas: primeiro o piso de sala, depois o movel por cima
-                    desenharPiso2D(mapa, i, j, x, y, tamanhoCasa, ' ');
-                    desenharMesa2D(x, y, tamanhoCasa);
-                    break;
-                case 'C':
-                    desenharPiso2D(mapa, i, j, x, y, tamanhoCasa, ' ');
-                    desenharComputador2D(x, y, tamanhoCasa);
-                    break;
-                default:
-                    // '.' (corredor) ou ' ' (sala)
-                    desenharPiso2D(mapa, i, j, x, y, tamanhoCasa, mapa->matriz[i][j]);
-                    if (mapaTemTapete(mapa, i, j)) DrawRectangle(x, y, tamanhoCasa, tamanhoCasa, COR_CESAR_LARANJA);
-                    break;
-            }
-        }
-    }
-
-    // Logos dos tapetes: depois de tudo, senao as casas seguintes do proprio
-    // tapete cobririam o desenho. No minimapa fica so o retangulo laranja.
-    if (tamanhoCasa < DETALHE_MINIMO) return;
-    for (int i = 0; i < mapa->linhas; i++) {
-        for (int j = 0; j < mapa->colunas; j++) {
-            int largura, altura;
-            if (!mapaCantoTapete(mapa, i, j, &largura, &altura)) continue;
-            desenharLogoTapete2D((int)origem.x + j * tamanhoCasa, (int)origem.y + i * tamanhoCasa,
-                                 largura * tamanhoCasa, altura * tamanhoCasa);
-        }
-    }
-}
-
-// Desenha a escada (saida do andar) na casa do 'S', com degraus
-void desenharSaida2D(Mapa *mapa, Vector2 origem, int tamanhoCasa, bool liberada) {
-    if(mapa == NULL || mapa->saida.linha < 0) return; // andar sem escada
-
-    // Escada fica cinza enquanto o professor nao foi ajudado e verde quando o jogador pode subir
-    Color claro  = liberada ? (Color){ 0, 210, 90, 255 } : (Color){ 135, 135, 140, 255 };
-    Color escuro = liberada ? (Color){ 0, 105, 45, 255 } : (Color){  65,  65,  70, 255 };
-
-    int x = (int)origem.x + mapa->saida.coluna * tamanhoCasa;
-    int y = (int)origem.y + mapa->saida.linha * tamanhoCasa;
-
-    // No minimapa a casa e pequena demais para degraus: so um quadrado
-    if (tamanhoCasa < DETALHE_MINIMO) {
-        DrawRectangle(x, y, tamanhoCasa, tamanhoCasa, claro);
-        return;
-    }
-
-    // Borda de 2px para a escada nao encostar nas paredes vizinhas
-    int m = 2;
-    int largura = tamanhoCasa - 2 * m;
-    DrawRectangle(x + m, y + m, largura, largura, escuro);
-
-    // 4 degraus: o de cima (mais alto) e o mais claro, os de baixo vao
-    // escurecendo. O -1 na altura deixa uma linha escura entre os degraus.
-    int degraus = 4;
-    int altura = largura / degraus;
-    for (int k = 0; k < degraus; k++) {
-        Color cor = misturarCor(claro, escuro, (float)k / (float)(degraus - 1));
-        DrawRectangle(x + m, y + m + k * altura, largura, altura - 1, cor);
-    }
-}
-
-
-// A legenda dos caracteres do mapa esta em mapa.h
-int mapaCarregar(Jogo *jogo, const char *arquivo) {
-    if (jogo == NULL || arquivo == NULL) return 0;
-
-    FILE *f = fopen(arquivo, "r");
-    if (f == NULL) {
-        printf("Erro: nao achei o arquivo %s\n", arquivo);
-        return 0;
-    }
-
-    // 1) Cabecalho: tamanho do mapa ("25 40")
-    int linhas, colunas;
-    if (fscanf(f, "%d %d", &linhas, &colunas) != 2 || linhas <= 0 || colunas <= 0 || colunas > TAM_BUFFER - 2) {
-        printf("Erro: cabecalho invalido em %s\n", arquivo);
-        fclose(f);
-        return 0;
-    }
-
-    // Descarta o resto da linha do cabecalho (a quebra de linha)
-    char buffer[TAM_BUFFER];
-    fgets(buffer, sizeof(buffer), f);
-
-    // 2) Aloca a matriz: um vetor de ponteiros, um para cada linha do mapa
-    Mapa *mapa = &jogo->mapa;
-    mapa->linhas = linhas;
-    mapa->colunas = colunas;
-    mapa->saida = (Posicao){ .linha = -1, .coluna = -1 }; // -1 = andar sem escada, ate achar um 'S'
-    jogo->professor.posicao = (Posicao){ .linha = -1, .coluna = -1 }; // -1 = ainda nao achou o 'F'
-    mapa->matriz = memAlocar((size_t)linhas * sizeof(char *));
-    if (mapa->matriz == NULL) {
-        fclose(f);
-        return 0;
-    }
-
-    // 3) Le o mapa linha por linha, casa por casa
-    for (int i = 0; i < linhas; i++) {
-        mapa->matriz[i] = memAlocar((size_t)colunas * sizeof(char));
-        if (mapa->matriz[i] == NULL) {
-            mapa->linhas = i; // so libera as linhas que chegaram a ser alocadas
-            mapaLiberar(mapa);
-            fclose(f);
-            return 0;
-        }
-
-        if (fgets(buffer, sizeof(buffer), f) == NULL) buffer[0] = '\0';
-
-        // Se a linha do arquivo for mais curta que o mapa (ou acabar em \r\n,
-        // como no Windows), o que falta vira chao vazio
-        int fimLinha = 0;
-        for (int j = 0; j < colunas; j++) {
-            char c = fimLinha ? ' ' : buffer[j];
-
-            if (c == '\n' || c == '\r' || c == '\0') {
-                fimLinha = 1;
-                c = ' ';
-            }
-
-            // Piso que fica embaixo de um objeto: copia o da casa a esquerda
-            // (corredor '.' ou sala ' '). Se a esquerda for parede, vira corredor.
-            char piso = '.';
-            if (j > 0 && (mapa->matriz[i][j - 1] == '.' || mapa->matriz[i][j - 1] == ' ')) {
-                piso = mapa->matriz[i][j - 1];
-            }
-
-            // Letras especiais sao lidas aqui e viram piso na matriz:
-            // a matriz guarda so o cenario, e os objetos ficam nas suas proprias structs
-            switch (c) {
-                case 'P':
-                    // Ponto de partida do jogador neste andar
-                    jogo->jogador.posicaoInicial.linha = i;
-                    jogo->jogador.posicaoInicial.coluna = j;
-                    jogo->jogador.posicao = jogo->jogador.posicaoInicial;
-                    mapa->matriz[i][j] = piso;
-                    break;
-                case 'S':
-                    // Escada: guardamos a posicao para o main saber quando o jogador sobe
-                    mapa->saida.linha = i;
-                    mapa->saida.coluna = j;
-                    mapa->matriz[i][j] = piso;
-                    break;
-                case 'I':
-                    // Bateria: entra na lista encadeada de itens do jogo
-                    adicionar_item(&jogo->itens, (Posicao){ .linha = i, .coluna = j }, ITEM_BATERIA);
-                    mapa->matriz[i][j] = piso;
-                    break;
-                case 'F':
-                    // Professor: a posicao vem do arquivo; a pergunta e definida
-                    // depois, no mapaCarregarAndar, de acordo com o andar
-                    jogo->professor.posicao = (Posicao){ .linha = i, .coluna = j };
-                    mapa->matriz[i][j] = piso;
-                    break;
-               case 'R': // Robo Temporizador (Roxo)
-                    robosAdicionar(&jogo->robos, (Posicao){ .linha = i, .coluna = j }, ROBO_TEMPORIZADOR, jogo->andarAtual);
-                    mapa->matriz[i][j] = piso;
-                    break;
-                case 'X': // Robo Perseguidor (Vermelho)
-                    robosAdicionar(&jogo->robos, (Posicao){ .linha = i, .coluna = j }, ROBO_PERSEGUIDOR, jogo->andarAtual);
-                    mapa->matriz[i][j] = piso;
-                    break;
-                case 'Z': // Robo Interceptador (Laranja)
-                    robosAdicionar(&jogo->robos, (Posicao){ .linha = i, .coluna = j }, ROBO_INTERCEPTADOR, jogo->andarAtual);
-                    mapa->matriz[i][j] = piso;
-                    break;
-                case 'B': // Robo Cinza
-                    robosAdicionar(&jogo->robos, (Posicao){ .linha = i, .coluna = j }, ROBO_CINZA, jogo->andarAtual);
-                    mapa->matriz[i][j] = piso;
-                    break;
-                case 'L': // lanterna agora e fixa, nao vira item
-                    mapa->matriz[i][j] = piso;
-                    break;
-                case '#': // parede
-                case '.': // piso de corredor
-                case ' ': // piso de sala
-                case '=': // tapete com a logo (andavel)
-                case 'M': // mesa
-                case 'C': // computador
-                    mapa->matriz[i][j] = c;
-                    break;
-                default:
-                    // Caractere desconhecido: vira piso para nao travar o jogo
-                    mapa->matriz[i][j] = piso;
-                    break;
-            }
-        }
-    }
-
-    fclose(f);
-
-    // Sem professor a escada nunca seria liberada: trata como arquivo invalido
-    if (jogo->professor.posicao.linha < 0) {
-        printf("Erro: %s nao tem professor (letra F)\n", arquivo);
-        liberar_todos_itens(&jogo->itens);
-        mapaLiberar(mapa);
-        return 0;
-    }
-    return 1;
-}
-
-// Troca de andar: descarta o mapa e os itens atuais e carrega andares/andarN.txt
-// Usada tanto no inicio do jogo (andar 1) quanto quando o jogador sobe a escada.
-int mapaCarregarAndar(Jogo *jogo, int andar) {
-    if (jogo == NULL || andar < 1 || andar > TOTAL_ANDARES) return 0;
-
-    // Limpa o andar anterior antes de carregar o novo, para nao vazar memoria.
-    // No primeiro andar a lista e a matriz ainda estao vazias (NULL), e as
-    // duas funcoes simplesmente nao fazem nada.
-    liberar_todos_itens(&jogo->itens);
-    robosLiberar(&jogo->robos); // senao os robos do andar anterior continuariam neste
-    mapaLiberar(&jogo->mapa);
-
-    // Monta o nome do arquivo a partir do numero do andar: 2 -> "andares/andar2.txt"
-    char arquivo[64];
-    snprintf(arquivo, sizeof(arquivo), "andares/andar%d.txt", andar);
-    if (!mapaCarregar(jogo, arquivo)) return 0;
-
-    // Cada andar tem o seu professor, que comeca sem ter sido ajudado
-    // (ajudado = false) e com a pergunta deste andar. O jogador tambem
-    // perde o pendrive do andar anterior. Sem isso a escada dos andares
-    // 2 e 3 ja comecaria liberada.
-    inicializar_professor_andar(&jogo->professor, jogo->professor.posicao, andar);
-    jogo->jogador.temPendrive = false;
-
-    // Guarda quantas baterias o andar tem, para o HUD mostrar "coletadas/total"
-    jogo->totalItensAndar = contar_itens(jogo->itens);
-
-    // Vidas, pontos e bateria do jogador nao sao tocados: passam de um andar para o outro.
-    // So a posicao muda, porque o mapaCarregar coloca o jogador no 'P' do novo andar.
-    jogo->andarAtual = andar;
-    return 1;
-}
-
-void mapaLiberar(Mapa *mapa) {
-    if (mapa == NULL || mapa->matriz == NULL) return;
-
-    for (int i = 0; i < mapa->linhas; i++) {
-        memLiberar(mapa->matriz[i]);
-    }
-    memLiberar(mapa->matriz);
-
-    mapa->matriz = NULL;
-    mapa->linhas = 0;
-    mapa->colunas = 0;
-}
