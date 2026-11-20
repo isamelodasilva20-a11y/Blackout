@@ -24,10 +24,12 @@ void robosAdicionar(Robo **cabeca, Posicao posicao, TipoRobo tipo, int andar) {
     novo->posicao = posicao;
     novo->posicaoInicial = posicao;
     novo->posicaoAnterior = posicao;
-    novo->posicaoReal = (Vector2){ (float)posicao.coluna, (float)posicao.linha };
+    novo->posicaoReal.x = (float)posicao.coluna;
+    novo->posicaoReal.y = (float)posicao.linha;
     novo->tipo = tipo;
     novo->estado = ESTADO_NORMAL;
-    novo->direcao = (Vector2){ 0, 0 };
+    novo->direcao.x = 0.0f;
+    novo->direcao.y = 0.0f;
     novo->tempoParalisado = 0.0f;
     novo->tempoFugindo = 0.0f;
 
@@ -110,7 +112,9 @@ Posicao calcularProximoPassoBFS(Mapa *mapa, Posicao origem, Posicao destino) {
                 if (casaLivreParaRobo(mapa, nL, nC, destino)) {
                     visitado[nL][nC] = true;
                     pai[nL][nC] = atual;
-                    fila[fim++] = (Posicao){ nL, nC };
+                    fila[fim].linha = nL;
+                    fila[fim].coluna = nC;
+                    fim++;
                 }
             }
         }
@@ -152,7 +156,8 @@ Posicao calcularPassoFuga(Mapa *mapa, Robo *robo, Posicao posJogador) {
 
             if (dist > maiorDist) {
                 maiorDist = dist;
-                melhor = (Posicao){ nL, nC };
+                melhor.linha = nL;
+                melhor.coluna = nC;
             }
         }
     }
@@ -299,7 +304,7 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
                 proximaCasa = calcularPassoFuga(&jogo->mapa, atual, jogo->jogador.posicao);
             }
             else if (atual->tipo == ROBO_ROXO) {
-                if (jogo->professor.ajudado == false) {
+                if (!jogo->professor.ajudado) {
                     // Ainda nao respondeu a pergunta: vai ate o professor
                     if (jogo->professor.posicao.linha >= 0 && jogo->professor.posicao.coluna >= 0) {
                         Posicao passoRoxo = calcularProximoPassoBFS(&jogo->mapa, atual->posicao, jogo->professor.posicao);
@@ -363,9 +368,11 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
 
                     for (int i = 0; i < 4; i++) {
                         Posicao viz = { atual->posicao.linha + dL[i], atual->posicao.coluna + dC[i] };
+                        bool ehJogador = (viz.linha == jogo->jogador.posicao.linha && viz.coluna == jogo->jogador.posicao.coluna);
+
                         if (casaLivreParaRobo(&jogo->mapa, viz.linha, viz.coluna, semExcecao) && 
                             !temOutroRoboNaPosicao(jogo->robos, atual, viz) &&
-                            !(atual->estado == ESTADO_FUGINDO && viz.linha == jogo->jogador.posicao.linha && viz.coluna == jogo->jogador.posicao.coluna)) {
+                            !(atual->estado == ESTADO_FUGINDO && ehJogador)) {
                             proximaCasa = viz;
                             desviou = true;
                             break;
@@ -397,7 +404,7 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
             if (vel <= 0.0f) vel = 4.0f;
 
             // se for o robo roxo e o professor ja foi ajudado, ele corre mais rapido atras do aluno
-            if (atual->tipo == ROBO_ROXO && jogo->professor.ajudado == true && atual->estado != ESTADO_FUGINDO) {
+            if (atual->tipo == ROBO_ROXO && jogo->professor.ajudado && atual->estado != ESTADO_FUGINDO) {
                 vel = vel * 1.7f;
             }
 
@@ -410,7 +417,8 @@ void robosAtualizarContinuo(Jogo *jogo, float deltaTime) {
             float passo = vel * deltaTime;
             if (passo > dist) passo = dist;
 
-            atual->direcao = (Vector2){ dx / dist, dy / dist };
+            atual->direcao.x = dx / dist;
+            atual->direcao.y = dy / dist;
             atual->posicaoReal.x += atual->direcao.x * passo;
             atual->posicaoReal.y += atual->direcao.y * passo;
         }
@@ -501,7 +509,7 @@ void checarVitoriaDerrotaRobos(Jogo *jogo) {
         }
 
         // Enquanto o professor nao foi ajudado, o robo roxo nao da dano no aluno
-        if (atual->tipo == ROBO_ROXO && jogo->professor.ajudado == false) {
+        if (atual->tipo == ROBO_ROXO && !jogo->professor.ajudado) {
             atual = atual->next;
             continue;
         }
