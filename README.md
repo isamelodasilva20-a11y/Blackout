@@ -1,159 +1,195 @@
-# Blackout
+<img src="imagens/capa.png" alt="Blackout - CESAR School" width="100%" />
 
-A CESAR School foi invadida por hackers e a energia do prédio está falhando. Você é um aluno do 8º periodo e seus arquivos do TCC sumiram dos servidores, mas por sorte, os professores de PIF estavam com cópias do seu projeto para análise de feedbacks. Mas para recuperá-los, você precisa atravessar os três andares do prédio, encontrar o professor de cada andar, responder à pergunta dele e fugir pela escada de incêndio. MAs cuidado! os Hackers conseguiram invadir o sistema do Tiradentes, e corromper os robôs do professor Mineiro, e agora o objetivo deles é tentar te pegar e destruir os arquivos.
+## A História
 
-## Como jogar
+A CESAR School foi invadida por hackers e a energia do prédio está falhando. Você é um aluno do 8º período e seus arquivos do TCC sumiram dos servidores. Por sorte, os professores de PIF estavam com cópias do seu projeto para análise de feedbacks.
 
-Cada andar é um labirinto de corredores e salas. O objetivo em todos é o mesmo:
+Para recuperá-los, você precisa atravessar os três andares do prédio, encontrar o professor de cada andar, responder à pergunta dele e fugir pela escada de incêndio. Mas cuidado: os hackers invadiram o sistema do Tiradentes e corromperam os robôs do professor Mineiro, que agora têm o objetivo de capturar você e destruir os seus arquivos.
 
-1. Encontre o professor do andar (marcado com um `!` amarelo) e interaja com ele.
-2. Responda o quiz de múltipla escolha. Se errar, é só tentar de novo. Ao acertar, você recebe o pendrive e a sua bateria é recarregada.
-3. A escada do andar, que antes estava cinza, fica verde. Vá até ela para subir.
+---
 
-Mas cuidado! cada andar esconde suas peculiaridades...
-1º andar: os robôs são agressivos, se você não utilizar sua lanterna poderá ser gravemente ferido, e o robo roxo quer fazer de tudo para encontrar seu professor e destruir o pendrive.
+## Como Jogar
 
-2º andar: A agressão é iminente, e os robos perceberam que não resistiriam a sua lanterna, então o robo cinza está disposto a destruir todas as baterias disponiveis, você deverá ser mais rápido!
+Link Video: https://youtu.be/o0_WP-i9B98
 
-3º andar: Eles evoluiram de novo! e agora perceberam que a bateria não é o unico problema, você é ágil! então o robo cinza agora soltará um efeito cerebral capaz de dar um curto-circuito no sue cérebro, seus movimentos não serão mais os mesmos...
+Cada andar é um labirinto de corredores e salas. O objetivo principal em todos eles é o mesmo:
 
-Depois do terceiro andar, aparece a tela de vitória com o tempo total da partida.
+1. **Encontre o professor** do andar (marcado com um `!` amarelo) e interaja com ele.
+2. **Responda ao quiz** de múltipla escolha. Se errar, você pode tentar novamente. Ao acertar, você recebe o pendrive e sua bateria é recarregada.
+3. **Vá até a escada** do andar (que muda de cinza para verde após o quiz) para subir ao próximo nível.
 
-**Baterias e lanterna.** Para cada andar existirão baterias espalhadas pelos andares. Você só consegue pegar uma quando a carga atual está complemente zerada. Cada bateria enche a carga em 100% e para acender a lanterna, é necessário apertar a tecla E, mas cuidaddo! a lanterna so aguenta 10 segundos ligada. Enquanto a lanterna está acesa, todos os robôs, exceto o roxo, fogem de você! ficam azulados e andam mais devagar,, mas apenas qunaod se aproximam da sua luz.
+Ao concluir o terceiro andar, a tela de vitória é exibida com o tempo total da partida.
 
-**Vidas.** Você começa com 3 corações. Se algum robô encostar em você e a lanterna estiver desligada, um coração é sacrificado. Sem corações, é game over.
+### Progressão e Desafios por Andar
 
-**Game over** acontece quando os corações acabam ou quando o robô roxo alcança o professor antes de você responder ao quiz. Na tela de game over, `R` reinicia a partida e volta para o 1º andar.
+A cada andar, os robôs evoluem e adicionam novas mecânicas ao jogo:
 
-**Robôs.** Todos andam pelo caminho mais curto do labirinto em busca de seu obejetivo(para o robo roxo é o professor, e para o resto é você!), a cada andar eles ficam um pouco mais rápidos.
+* **1º Andar (Agressividade):** Os robôs são hostis e atacam caso você não use a lanterna. O robô roxo tenta alcançar o professor primeiro para destruir o pendrive.
+* **2º Andar (Sabotagem):** Percebendo a vulnerabilidade à luz, o robô cinza passa a buscar e destruir todas as baterias espalhadas pelo mapa. Você precisa ser mais rápido do que ele.
+* **3º Andar (Curto-Circuito):** Agora robô cinza emite uma interferência que causa um curto-circuito neural no jogador, invertendo ou alterando seus controles de movimento.
 
-| Robô | Comportamento |
-|---|---|
-| Vermelho (perseguidor) | Vai direto atrás de você. |
-| Laranja (interceptador) | planeja a melhor rota para te emboscar|
-| Roxo (temporizador) | Ignora você e vai até o professor. Se chegar lá antes de você responder ao quiz, é game over. Se você encostar nele com carga na bateria, ele fica parado por 5 segundos e a carga é gasta, e se você responder ao quiz, ele passa a perseguir você. |
+---
 
-**Tela.** A barra de baixo mostra os corações, o andar, a carga da bateria, o pendrive, a lanterna, o cronômetro e o objetivo atual. Quando um robô chega a 8 casas de você, um alerta de proximidade pisca no topo da tela, primeiro em amarelo, depois em laranja e, bem perto, em vermelho. O jogo tem duas visões: o mapa visto de cima (2D) e a primeira pessoa (3D), com um minimapa no canto.
+## Mecânicas e Recursos
+
+### Baterias e Lanterna
+Existem baterias espalhadas por cada andar, mas você só consegue coletar uma nova quando a carga atual estiver completamente zerada. Cada bateria restaura 100% da carga.
+
+* **Ativação:** Pressione `L` para acender a lanterna (duração máxima de **10 segundos**).
+* **Efeito:** Enquanto a lanterna está acesa, todos os robôs (exceto o roxo) ficam azulados, reduzem a velocidade e fogem ao se aproximarem do feixe de luz.
+
+### Vidas e Game Over
+Você inicia a partida com **3 corações**. Encostar em qualquer robô com a lanterna desligada custa 1 coração. O **Game Over** ocorre em duas situações:
+
+* Se todos os seus corações acabarem.
+* Se o robô roxo alcançar o professor antes de você concluir o quiz.
+
+Na tela de Game Over, pressione `R` para reiniciar a partida a partir do 1º andar.
+
+### Interface e Visões
+* **HUD Inferior:** Exibe corações, andar atual, carga da bateria, status do pendrive, lanterna, cronômetro e objetivo.
+* **Alerta de Proximidade:** Quando um robô entra em um raio de 8 casas, um alerta pisca no topo da tela mudando de cor conforme a distância (amarelo → laranja → vermelho).
+* **Modos de Câmera:** É possível alternar em tempo real entre a visão superior (**2D**) e a visão em primeira pessoa (**3D** com minimapa no canto).
+
+---
+
+## Tipos de Robôs
+
+Todos os robôs calculam o menor caminho pelo labirinto até o seu alvo e ficam mais rápidos a cada andar:
+
+| Robô | Papel | Comportamento |
+| :--- | :--- | :--- |
+| **Vermelho** | Perseguidor | Vai diretamente atrás da sua posição atual. |
+| **Laranja** | Interceptador | Antecipa sua trajetória e planeja rotas para emboscar você. |
+| **Roxo** | Temporizador | Ignora o jogador e vai direto até o professor. Se chegar antes de você responder ao quiz, causa Game Over. Após o quiz, passa a perseguir você. |
+| **Cinza** | Especial | A cada fase recebe um Update de habilidades, cada vez mais forte. |
+---
 
 ## Controles
 
-| Onde | Tecla | Ação |
-|---|---|---|
-| Tela inicial | `Enter` ou `Espaço` | Começar o jogo |
-| Visão 2D | `W` `A` `S` `D` ou setas | Andar (segurar a tecla continua andando) |
-| Visão 3D | `W` ou seta para cima | Andar para a frente |
-| Visão 3D | `S` ou seta para baixo | Andar para trás |
-| Visão 3D | `A` / `D` ou setas laterais | Girar 90 graus para a esquerda / direita |
-| Durante o jogo | `V` | Alternar entre a visão 2D e a 3D |
-| Durante o jogo | `P` | Pausar e continuar |
-| Durante o jogo | `L` | Ativar lanterna |
-| Quiz | `A` `B` `C` `D` | Responder |
-| Game over | `R` | Recomeçar do andar 1 |
-| Qualquer tela | `F11` | Tela cheia |
-| Qualquer tela | `Esc` | Fechar o jogo |
+| Contexto | Tecla | Ação |
+| :--- | :--- | :--- |
+| **Tela inicial** | `Enter` ou `Espaço` | Começar o jogo |
+| **Visão 2D** | `W` `A` `S` `D` ou Setas | Mover o personagem (segurar mantém o movimento) |
+| **Visão 3D** | `W` ou Seta para cima | Andar para frente |
+| **Visão 3D** | `S` ou Seta para baixo | Andar para trás |
+| **Visão 3D** | `A` / `D` ou Setas laterais | Girar 90° para a esquerda / direita |
+| **Durante o jogo** | `V` | Alternar entre visão 2D e 3D |
+| **Durante o jogo** | `L` | Ativar lanterna |
+| **Durante o jogo** | `P` | Pausar e retomar o jogo |
+| **Quiz** | `A` `B` `C` `D` | Selecionar alternativa |
+| **Game Over** | `R` | Reiniciar do 1º andar |
+| **Geral** | `F11` | Alternar tela cheia |
+| **Geral** | `Esc` | Fechar o jogo |
 
-## Como compilar e rodar
+---
 
-O jogo usa C99 e a biblioteca [raylib](https://www.raylib.com/).
+## Instalação e Execução
 
-### Windows
+O projeto foi desenvolvido em **C99** utilizando a biblioteca gráfica [raylib](https://www.raylib.com/).
 
-1. Baixe o **w64devkit** (versão x64) e descompacte em `C:\w64devkit`.
-2. Adicione `C:\w64devkit\bin` ao `Path` do Windows (Variáveis de ambiente). Se já houver um MinGW antigo no `Path`, o `C:\w64devkit\bin` precisa vir antes dele. Senão, o `gcc` e o `make` errados são usados.
-3. Baixe o raylib no arquivo `raylib-*_win64_mingw-w64.zip` (página de releases do raylib no GitHub) e descompacte de modo que existam as pastas `C:\raylib\include` e `C:\raylib\lib`.
-4. Abra um terminal novo e confira com `gcc --version` e `make --version`.
+### Pré-requisitos no Windows
 
-Se o raylib estiver em outra pasta, informe o caminho ao compilar: `make RAYLIB_PATH=D:/minhapasta/raylib`.
+1. Baixe o **w64devkit** (versão x64) e extraia em `C:\w64devkit`.
+2. Adicione `C:\w64devkit\bin` à variável de ambiente `Path` do Windows (caso exista outra instalação do MinGW, garanta que o `w64devkit` fique acima dela na lista).
+3. Baixe o pacote `raylib-*_win64_mingw-w64.zip` na página de releases do GitHub da raylib e extraia de forma que existam os diretórios `C:\raylib\include` e `C:\raylib\lib`.
+4. Abra um novo terminal e valide a instalação com `gcc --version` e `make --version`.
 
-### macOS
+> **Nota:** Caso a raylib esteja em outro diretório, informe o caminho na compilação: `make RAYLIB_PATH=D:/minhapasta/raylib`.
 
-```
-xcode-select --install
-```
+### Pré-requisitos no macOS
 
-Instale o [Homebrew](https://brew.sh/) e depois:
+Instale as ferramentas de linha de comando e a biblioteca via [Homebrew](https://brew.sh/):
 
-```
-brew install raylib
-```
+    xcode-select --install
+    brew install raylib
 
-### Comandos
+### Comandos de Compilação
 
-Rode na pasta do projeto:
+Execute os comandos a partir da **raiz do projeto** (necessário para que o executável localize as pastas `imagens/` e `andares/`):
 
-| Comando | O que faz |
-|---|---|
-| `make` | Compila o jogo em `build/` |
-| `make run` | Compila e abre o jogo |
-| `make clean` | Apaga a pasta `build/` |
+| Comando | Descrição |
+| :--- | :--- |
+| `make` | Compila o projeto e gera os arquivos em `build/` |
+| `make run` | Compila e inicia o jogo automaticamente |
+| `make clean` | Remove a pasta `build/` e os arquivos compilados |
 
-O jogo carrega as pastas `imagens/` e `andares/` a partir da pasta atual. Por isso, rode-o sempre a partir da raiz do projeto (o `make run` já faz isso).
+Ao encerrar o jogo, o terminal exibirá `Blocos nao liberados: N` (gerado pelo módulo `memoria.c`). O valor esperado sem vazamentos de memória é `0`.
 
-Ao fechar o jogo, o terminal mostra `Blocos nao liberados: N`. Esse é o contador do `memoria.c`, e o esperado é `0`.
+---
 
-## Estrutura do projeto
+## Arquitetura do Projeto
 
-| Pasta | Conteúdo |
-|---|---|
-| `src/` | Código-fonte (`.c`) |
-| `include/` | Cabeçalhos (`.h`). As structs do jogo ficam em `estrutura.h` |
-| `andares/` | Um arquivo de texto por andar: `andar1.txt`, `andar2.txt` e `andar3.txt` |
-| `imagens/` | Sprites do jogador, dos professores, dos robôs e da bateria |
-| `build/` | Gerada pelo `make` (objetos e executável) |
+### Estrutura de Diretórios
 
-Os arquivos de `src/`:
+| Diretório | Conteúdo |
+| :--- | :--- |
+| `src/` | Arquivos de código-fonte (`.c`) |
+| `include/` | Arquivos de cabeçalho (`.h`), incluindo as structs globais em `estrutura.h` |
+| `andares/` | Mapas em texto puro (`andar1.txt`, `andar2.txt` e `andar3.txt`) |
+| `imagens/` | Sprites do jogador, dos professores, dos robôs e itens |
+| `build/` | Arquivos objeto e executável gerados pelo `make` |
+
+### Módulos em `src/`
 
 | Arquivo | Responsabilidade |
-|---|---|
-| `main.c` | Janela, laço principal, leitura das teclas, troca de andar, pausa e limpeza ao sair |
-| `mapa.c` | Leitura dos arquivos de andar, matriz do mapa e desenho do mapa em 2D |
-| `render3d.c` | Visão 3D em primeira pessoa e minimapa |
-| `hud.c` | Barra de informações, alerta de proximidade e telas de vitória, pausa e game over |
-| `telainicial.c` | Tela inicial com a história |
-| `jogador.c` | Movimento, giro na visão 3D e desenho do jogador |
-| `itens.c` | Lista de baterias: criação, coleta, desenho e liberação |
-| `professor.c` | Professores de cada andar, perguntas e quiz |
-| `robos.c` | Lista de robôs: caminho, fuga, colisões e desenho |
-| `jogo.c` | Carrega e descarrega as texturas dos robôs |
-| `memoria.c` | `memAlocar` e `memLiberar`, com contador de blocos alocados |
+| :--- | :--- |
+| `main.c` | Inicialização da janela, game loop, leitura de inputs, transição de andares e limpeza |
+| `mapa.c` | Leitura dos arquivos de fase, alocação da matriz e renderização 2D |
+| `render3d.c` | Renderização da visão 3D em primeira pessoa e do minimapa |
+| `hud.c` | Barra de status, alertas de proximidade e telas de pausa, vitória e game over |
+| `telainicial.c` | Tela de abertura e contextualização da história |
+| `jogador.c` | Movimentação, rotação na câmera 3D e renderização do jogador |
+| `itens.c` | Gerenciamento da lista encadeada de baterias (criação, coleta, desenho e liberação) |
+| `professor.c` | Posicionamento dos professores, banco de perguntas e lógica do quiz |
+| `robos.c` | Inteligência artificial dos robôs (BFS, fuga, colisões) e gerenciamento da lista |
+| `jogo.c` | Carregamento e descarregamento de texturas |
+| `memoria.c` | Wrappers `memAlocar` e `memLiberar` com rastreamento de blocos alocados |
 
-### Formato do arquivo de andar
+### Formato dos Mapas (`andares/*.txt`)
 
-A primeira linha tem o tamanho do mapa (`linhas colunas`; todos os andares hoje são `25 40`). Depois vem o desenho do mapa, um caractere por casa:
+A primeira linha define as dimensões da matriz (`linhas colunas`, padrão `25 40`). As linhas seguintes desenham o layout utilizando os caracteres abaixo:
 
-| Caractere | Significado |
-|---|---|
-| `#` | Parede |
-| `.` | Piso de corredor |
-| ` ` (espaço) | Piso de sala |
-| `=` | Tapete com a logo do CESAR (andável). Um retângulo de `=` vira um tapete só |
-| `M` | Mesa (bloqueia a passagem) |
-| `C` | Computador (bloqueia a passagem) |
-| `P` | Onde o jogador começa no andar |
-| `S` | Escada para o próximo andar |
-| `I` | Bateria |
-| `F` | Professor do andar (obrigatório: um andar sem `F` não carrega) |
-| `R` | Robô roxo (temporizador) |
-| `X` | Robô vermelho (perseguidor) |
-| `Z` | Robô laranja (interceptador) |
+| Caractere | Elemento | Observação |
+| :--- | :--- | :--- |
+| `#` | Parede | Bloqueia passagem e visão |
+| `.` | Piso de corredor | Andável |
+| ` ` (espaço) | Piso de sala | Andável |
+| `=` | Tapete CESAR | Andável (blocos retangulares contínuos formam um único tapete) |
+| `M` | Mesa | Obstáculo sólido |
+| `C` | Computador | Obstáculo sólido |
+| `P` | Spawn do jogador | Deve coincidir com a posição `S` do andar anterior |
+| `S` | Escada de saída | Libera o próximo andar após o quiz |
+| `I` | Bateria | Item coletável |
+| `F` | Professor | Obrigatório (o mapa não carrega sem um `F`) |
+| `R` | Robô Roxo | Temporizador |
+| `X` | Robô Vermelho | Perseguidor |
+| `Z` | Robô Laranja | Interceptador |
+| `B` | Robo Cinza | Especial
 
-As letras de objetos (`P`, `S`, `I`, `F`, `R`, `X`, `Z`) viram piso no mapa, copiando o piso da casa à esquerda (corredor ou sala). Qualquer outro caractere também vira piso. Os andares se encaixam: a escada (`S`) de um andar fica na mesma posição do início (`P`) do andar seguinte.
+> Caracteres de entidades (`P`, `S`, `I`, `F`, `R`, `X`, `Z`, `B`) são convertidos em piso durante o carregamento, herdando o tipo de piso da célula imediatamente à esquerda.
 
-## Conceitos da disciplina
+---
 
-| Conceito | Onde aparece |
-|---|---|
-| Structs | `include/estrutura.h`: `Posicao`, `Mapa`, `Jogador`, `Item`, `Professor`, `Robo` e `Jogo`, que reúne o estado da partida inteira |
-| Ponteiros | `Jogo *` passado para quase todas as funções. Ponteiro para ponteiro para alterar o início de uma lista: `adicionar_item(Item **, ...)` e `coletar_item` em `itens.c`, `robosAdicionar(Robo **, ...)` e `robosLiberar` em `robos.c`. A matriz do mapa é um `char **` |
-| Alocação dinâmica | `memoria.c`: `memAlocar` e `memLiberar` envolvem `malloc` e `free` e contam os blocos, e `memRelatorio` mostra o saldo ao sair. São usadas em `mapa.c` (`mapaCarregar`, `mapaLiberar`) e `itens.c` (`adicionar_item`, `liberar_item`). Os robôs usam `malloc` e `free` direto, em `robosAdicionar` e `robosLiberar` (`robos.c`) |
-| Listas encadeadas | Baterias: `Item` com o campo `next`; `adicionar_item` insere no início, `coletar_item` remove o item pego e `liberar_todos_itens` apaga a lista (`itens.c`). Robôs: `Robo` com `next`; `robosAdicionar` insere, `robosAtualizarContinuo` e `desenharRobos` percorrem e `robosLiberar` apaga (`robos.c`) |
-| Matrizes | O mapa é uma matriz `char **` alocada linha por linha em `mapaCarregar` e liberada em `mapaLiberar` (`mapa.c`). A busca de caminho dos robôs usa as matrizes `visitado` e `pai` em `calcularProximoPassoBFS` (`robos.c`) |
-| Leitura de arquivo | `mapaCarregar` (`mapa.c`) abre o andar com `fopen`, lê o tamanho com `fscanf`, lê cada linha com `fgets` e fecha com `fclose`. `mapaCarregarAndar` monta o nome do arquivo (`andares/andarN.txt`) com `snprintf` |
+## Conceitos Aplicados
+
+Mapeamento dos fundamentos da disciplina de **Programação Imperativa e Funcional** utilizados no projeto:
+
+| Conceito | Implementação no Código |
+| :--- | :--- |
+| **Structs** | Definidas em `include/estrutura.h` (`Posicao`, `Mapa`, `Jogador`, `Item`, `Professor`, `Robo` e `Jogo`, que centraliza o estado global). |
+| **Ponteiros** | Passagem de `Jogo *` por referência entre módulos; uso de ponteiros duplos (`Item **`, `Robo **`) para manipulação do início das listas encadeadas e `char **` para a matriz do mapa. |
+| **Alocação Dinâmica** | Encapsulamento de `malloc` e `free` via `memAlocar` e `memLiberar` (`memoria.c`), com relatório de vazamentos (`memRelatorio`) ao fechar o programa. |
+| **Listas Encadeadas** | Listas simplesmente encadeadas para gerenciar dinamicamente as baterias (`Item` em `itens.c`) e os inimigos (`Robo` em `robos.c`). |
+| **Matrizes** | Representação do mapa (`char **`) e matrizes auxiliares `visitado` e `pai` utilizadas no algoritmo de busca em largura (`calcularProximoPassoBFS` em `robos.c`). |
+| **Manipulação de Arquivos** | Leitura dinâmica dos mapas com `fopen`, `fscanf`, `fgets` e `fclose` em `mapa.c`, utilizando `snprintf` para montar os caminhos dos arquivos e estruturação/preenchimento de Ranking. |
+
+---
 
 ## Equipe
 
-- Miguel Magalhães Drechsler
-- Carlos Vinicius
-- Isabela Melo da Silva
+* **Miguel Magalhães Drechsler**
+* **Carlos Vinicius Nascimento**
+* **Isabela Melo da Silva**
 
-Programação Imperativa e Funcional, CESAR School, 2026.2.
+*Disciplina de Programação Imperativa e Funcional — CESAR School, 2026.2.*
