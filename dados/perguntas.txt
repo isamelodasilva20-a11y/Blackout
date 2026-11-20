@@ -1,4 +1,4 @@
-1;Qual especificador imprime \num int em C?\nA) %s  B) %d  C) %f;B
+1;Qual especificador imprime \num int em C?\nA) %s  B) %d  C) %f D) %w;B
 
 1;Qual operador pega o endereco \nde memoria de uma variavel?\nA) *  B) &  C) %  D) #;B
 
